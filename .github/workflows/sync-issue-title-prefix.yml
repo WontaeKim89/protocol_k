@@ -1,0 +1,58 @@
+name: Sync Issue Title Prefix
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  sync-title-prefix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prefix issue title from branch type
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          extract_branch_type_from_body() {
+            printf '%s\n' "$ISSUE_BODY" | awk '
+              BEGIN { capture = 0 }
+              /^### 🌿 브랜치 유형$/ { capture = 1; next }
+              capture && /^### / { exit }
+              capture && $0 !~ /^[[:space:]]*$/ { print; exit }
+            '
+          }
+
+          normalize_branch_type() {
+            case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+              feature) echo "Feature" ;;
+              fix) echo "Fix" ;;
+              hotfix) echo "Hotfix" ;;
+              chore) echo "Chore" ;;
+              *) echo "" ;;
+            esac
+          }
+
+          BRANCH_TYPE=$(normalize_branch_type "$(extract_branch_type_from_body)")
+
+          if [ -z "$BRANCH_TYPE" ]; then
+            echo "No valid branch type found in issue body. Skipping title sync."
+            exit 0
+          fi
+
+          CLEAN_TITLE=$(printf '%s\n' "$ISSUE_TITLE" | sed 's/^\[[^]]*\][[:space:]]*//')
+          NEW_TITLE="[$BRANCH_TYPE] $CLEAN_TITLE"
+
+          if [ "$ISSUE_TITLE" = "$NEW_TITLE" ]; then
+            echo "Issue title already synchronized."
+            exit 0
+          fi
+
+          gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --title "$NEW_TITLE"

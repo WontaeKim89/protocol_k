@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.python-version
+
+# uv
+.venv/
+venv/
+env/
+
+# Node / Frontend
+node_modules/
+.pnp.*
+.yarn/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.eslintcache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+*.pem
+*.key
+
+# Claude / Codex
+.claude/worktrees/
+.claude-shared-memory.md
+CLAUDE.local.md
+
+# Logs
+*.log
+logs/
+
+# DB
+*.db
+*.sqlite
+*.sqlite3

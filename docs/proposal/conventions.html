@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protocol K — 개발 컨벤션</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #6b6b6b;
+      --line: #e5e2db;
+      --accent: #2d4a3a;
+      --accent-soft: #e8eee9;
+      --accent-bright: #8fb9a1;
+      --warn: #b85c38;
+      --warn-soft: #fbe9df;
+      --code-bg: #f3f1ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250, 250, 247, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    nav.top .container { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    nav.top .brand { font-weight: 700; font-size: 17px; }
+    nav.top .brand .dot { color: var(--accent); }
+    nav.top ul { list-style: none; display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
+    nav.top a { color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; }
+    nav.top a:hover { color: var(--ink); }
+    nav.top .pill { background: var(--accent); color: white; padding: 4px 10px; border-radius: 3px; font-size: 12px; font-weight: 600; }
+
+    header.hero { padding: 110px 0 80px; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; font-weight: 600; }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -0.025em; margin-bottom: 24px;
+    }
+    .hero .lede { font-size: 18px; color: var(--muted); max-width: 720px; }
+
+    section { padding: 80px 0; border-bottom: 1px solid var(--line); }
+    section h2 {
+      font-size: clamp(26px, 3.2vw, 34px);
+      font-weight: 700; letter-spacing: -0.015em;
+      margin-bottom: 16px; line-height: 1.2;
+    }
+    section h2 + .lede {
+      font-size: 16.5px; color: var(--muted);
+      max-width: 760px; margin-bottom: 40px;
+    }
+    h3 { font-size: 19px; font-weight: 700; margin-bottom: 14px; margin-top: 24px; letter-spacing: -0.01em; }
+    h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; margin-top: 18px; }
+    p { margin-bottom: 14px; }
+    p.muted { color: var(--muted); }
+
+    /* Flow */
+    .flow-pipeline {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+      margin: 24px 0 32px; align-items: center;
+    }
+    .flow-node {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 18px 12px; text-align: center; border-radius: 5px;
+      grid-column: span 2;
+    }
+    .flow-node strong { display: block; margin-bottom: 4px; font-size: 13.5px; font-weight: 700; }
+    .flow-node span { font-size: 11.5px; color: var(--muted); }
+    .flow-node.first { background: var(--accent); color: white; border-color: var(--accent); }
+    .flow-node.first span { color: var(--accent-bright); }
+    .flow-arrow { text-align: center; color: var(--accent); font-size: 16px; font-weight: 700; grid-column: span 1; }
+
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+      margin: 16px 0 24px;
+    }
+    .data-table th, .data-table td {
+      padding: 12px 16px; text-align: left;
+      font-size: 14px; border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .data-table th {
+      background: var(--bg); font-size: 11.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); font-weight: 700;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table td.center { text-align: center; }
+    .badge {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; padding: 2px 8px; border-radius: 3px;
+      font-weight: 700;
+    }
+    .badge.fe { background: var(--accent-bright); color: var(--ink); }
+    .badge.be { background: var(--accent); color: white; }
+    .badge.warn { background: var(--warn-soft); color: var(--warn); }
+
+    pre.code-block {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 24px; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px; line-height: 1.7;
+      overflow-x: auto; color: var(--ink);
+      white-space: pre;
+      margin: 16px 0 24px;
+    }
+    pre.code-block .comment { color: var(--muted); }
+
+    /* Policy split */
+    .policy-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+      margin-top: 24px;
+    }
+    .policy-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 32px;
+    }
+    .policy-card.fe { border-left: 4px solid var(--accent-bright); }
+    .policy-card.be { border-left: 4px solid var(--accent); }
+    .policy-tag {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.1em;
+      padding: 4px 10px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 14px;
+    }
+    .policy-card.fe .policy-tag { background: var(--accent-bright); color: var(--ink); }
+    .policy-card.be .policy-tag { background: var(--accent); color: white; }
+    .policy-card h3 { margin-top: 0; }
+    .policy-card ol, .policy-card ul { padding-left: 20px; margin-bottom: 0; }
+    .policy-card li { padding: 6px 0; font-size: 14.5px; line-height: 1.55; }
+
+    .step-list { counter-reset: step; list-style: none; padding-left: 0; }
+    .step-list li {
+      counter-increment: step;
+      padding: 14px 0 14px 50px;
+      position: relative;
+      border-bottom: 1px solid var(--line);
+      font-size: 14.5px; line-height: 1.6;
+    }
+    .step-list li:last-child { border-bottom: none; }
+    .step-list li::before {
+      content: counter(step);
+      position: absolute; left: 0; top: 12px;
+      width: 32px; height: 32px;
+      background: var(--accent); color: white;
+      border-radius: 50%;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+
+    .callout {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: 6px; padding: 20px 24px;
+      margin: 16px 0;
+    }
+    .callout strong { color: var(--accent); }
+
+    footer { padding: 48px 0; color: var(--muted); font-size: 13px; }
+    footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 900px) {
+      .policy-grid { grid-template-columns: 1fr; }
+      .flow-pipeline { grid-template-columns: 1fr; }
+      .flow-node, .flow-arrow { grid-column: span 1; }
+      .flow-arrow { transform: rotate(90deg); padding: 6px 0; }
+      header.hero { padding: 60px 0 50px; }
+      nav.top ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top">
+    <div class="container">
+      <div class="brand">Protocol<span class="dot"> K</span> · 개발 컨벤션</div>
+      <ul>
+        <li><a href="#workflow">이슈 퍼스트</a></li>
+        <li><a href="#skill">자동화 스킬</a></li>
+        <li><a href="#branch">브랜치</a></li>
+        <li><a href="#pr">PR 정책</a></li>
+        <li><a href="#review">리뷰·머지</a></li>
+        <li><a href="#quality">코드 품질</a></li>
+        <li><a href="#commit">커밋 메시지</a></li>
+        <li><a href="../../index.html" class="pill">기획서</a></li>
+        <li><a href="./architecture.html" class="pill">아키텍처</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="eyebrow">Development Conventions</div>
+      <h1>Protocol K<br/>개발 컨벤션</h1>
+      <p class="lede">
+        이슈 퍼스트 워크플로 · 자동화 스킬 · 브랜치 명명 · PR 정책 ·
+        리뷰/머지 룰 · 코드 품질.
+      </p>
+    </div>
+  </header>
+
+  <!-- Issue-first Workflow -->
+  <section id="workflow">
+    <div class="container">
+      <div class="eyebrow">Workflow</div>
+      <h2>이슈 퍼스트 워크플로</h2>
+      <p class="lede">
+        <strong style="color:var(--ink);">이슈 없는 코드 없음.</strong>
+        모든 작업은 GitHub Issue 생성 → 자동 브랜치 생성 → 개발 → PR → 머지 흐름을 따릅니다.
+      </p>
+
+      <div class="flow-pipeline">
+        <div class="flow-node first">
+          <strong>① 이슈 생성</strong>
+          <span>Claude / Codex 명령</span>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <strong>② Sprint 배정</strong>
+          <span>자동</span>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <strong>③ 브랜치 생성</strong>
+          <span>Actions 자동</span>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <strong>④ 개발 · PR · 머지</strong>
+          <span>본인 진행</span>
+        </div>
+      </div>
+
+      <h3>한 줄 명령어로 ①~③ 모두 자동</h3>
+      <p>Claude Code 또는 Codex CLI 에서:</p>
+      <div class="callout">
+        <strong>"이슈 생성해줘 — XX 기능 추가 (Feature)"</strong>
+      </div>
+      <p>이 한 줄이 다음을 모두 수행합니다.</p>
+
+      <ol class="step-list">
+        <li><strong>GitHub Issue 생성</strong> — 이슈 템플릿(<code>feature-task.yml</code>) 적용. 제목·본문·브랜치 유형 자동 wrap.</li>
+        <li><strong>현재 Sprint에 자동 배정</strong> — <code>assign-sprint.sh</code>가 오늘 날짜 → Sprint 매핑.</li>
+        <li><strong>GitHub Actions가 본문 파싱 → 브랜치 자동 생성</strong> — <code>auto-branches-from-issue.yml</code>이 <code>feature/&lt;slug&gt;-issue</code> 형태로.</li>
+        <li><strong>(선택) 로컬에 worktree로 즉시 체크아웃</strong> — <code>checkout-issue-worktree.sh</code>로 격리된 디렉토리 준비.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Skill -->
+  <section id="skill" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">Automation Skill</div>
+      <h2>.claude / .codex 둘 다 동작</h2>
+      <p class="lede">
+        어떤 도구로 작업해도 동일 결과. SKILL.md만 도구별로 별도이고, 스크립트는 공유합니다.
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>도구</th><th>SKILL 위치</th><th>호출 방식</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Claude Code</td><td><code>.claude/skills/create-issue/SKILL.md</code></td><td>AskUserQuestion 등 Claude 도구</td></tr>
+          <tr><td>Codex CLI</td><td><code>.codex/skills/create-issue/SKILL.md</code></td><td>request_user_input 등 Codex 도구</td></tr>
+        </tbody>
+      </table>
+
+      <h3>공유 스크립트</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>스크립트</th><th>역할</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>scripts/wrap-issue-body.sh</code></td><td>이슈 템플릿 헤더로 본문 wrapping (헤더 이모티콘·공백·줄바꿈 보존)</td></tr>
+          <tr><td><code>scripts/assign-sprint.sh</code></td><td>현재 Sprint 자동 배정 (날짜 비교 + project item 조회 + mutation)</td></tr>
+          <tr><td><code>scripts/checkout-issue-worktree.sh</code></td><td>연결된 브랜치를 worktree 또는 일반 체크아웃으로 준비</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>최초 셋업 필요</strong>: <code>assign-sprint.sh</code>는 GitHub Project ID·Sprint Field ID·Sprint 표가 채워져야 동작합니다.
+        가이드: <a href="../setup/sprint-setup.md" style="color: var(--accent);">docs/setup/sprint-setup.md</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Branch -->
+  <section id="branch">
+    <div class="container">
+      <div class="eyebrow">Branch Naming</div>
+      <h2>브랜치 명명 규칙</h2>
+      <p class="lede">이슈 본문의 <code>### 🌿 브랜치 유형</code> 값을 기반으로 GitHub Actions가 자동 생성합니다.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>Prefix</th><th>용도</th><th>예시</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>feature/&lt;slug&gt;-issue</code></td><td>신규 기능 · 설정 · 구성</td><td><code>feature/add-mcp-gateway-issue</code></td></tr>
+          <tr><td><code>fix/&lt;slug&gt;-issue</code></td><td>일반 버그 수정</td><td><code>fix/auth-key-encoding-issue</code></td></tr>
+          <tr><td><code>hotfix/&lt;slug&gt;-issue</code></td><td>운영/배포 영향 긴급 수정</td><td><code>hotfix/gateway-500-issue</code></td></tr>
+          <tr><td><code>chore/&lt;slug&gt;-issue</code></td><td>문서 정리 · 리팩토링 · 기능 변경 없음</td><td><code>chore/update-readme-issue</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>이름 충돌 시</h3>
+      <p>같은 slug 가 이미 존재하면 자동으로 순번이 붙습니다 (<code>-01-issue</code>, <code>-02-issue</code> …). 최대 20개.</p>
+
+      <h3>Base 브랜치</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 6px 0;">→ 자동 생성 브랜치의 base = <code>dev</code></li>
+        <li style="padding: 6px 0;">→ PR 머지 흐름: <code>feature/* → dev → main</code></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- PR Policy -->
+  <section id="pr" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">PR Policy</div>
+      <h2>PR 리뷰·머지 컨벤션</h2>
+      <p class="lede">
+        팀 구성: 총 <strong style="color:var(--ink);">3명</strong>.
+        역할에 따라 리뷰 정책이 달라집니다.
+      </p>
+
+      <div class="policy-grid">
+        <div class="policy-card fe">
+          <div class="policy-tag">FRONTEND</div>
+          <h3>담당: 조현재</h3>
+          <ul>
+            <li><strong>리뷰어 없이 머지 진행 가능</strong></li>
+            <li>단, <strong>PR은 반드시 생성</strong> (히스토리 · 변경 기록 목적)</li>
+            <li>PR 생성 후 <strong>본인이 셀프 머지</strong></li>
+            <li>PR 본문에 작업 내용 요약은 필수</li>
+            <li>이슈 자동 닫힘 위해 PR 본문에 <code>Closes #N</code> 권장</li>
+          </ul>
+        </div>
+
+        <div class="policy-card be">
+          <div class="policy-tag">BACKEND · PIPELINE · 기타</div>
+          <h3>FE 외 모든 영역</h3>
+          <ul>
+            <li><strong>3명 중 본인 제외 2명 모두</strong>에게 리뷰 요청</li>
+            <li>GitHub은 PR당 공식 <strong>Reviewer 등록은 1명</strong>만 가능</li>
+            <li>나머지 1명은 <strong>PR 본문 또는 코멘트에 <code>@멘션</code></strong> 으로 등록</li>
+            <li><strong>1명 이상이 Approve 하면 머지 가능</strong> (전원 승인 강제 아님)</li>
+            <li>코멘트만 달리고 Approve 안 된 상태는 머지 X</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Review / Merge Detail -->
+  <section id="review">
+    <div class="container">
+      <div class="eyebrow">Review · Merge</div>
+      <h2>리뷰 등록 + 머지 주체</h2>
+
+      <h3>리뷰 등록 방법</h3>
+      <pre class="code-block">[PR 생성 화면]
+  Reviewers: <span class="comment"># 공식 등록 슬롯 — 1명만</span>
+    ☑ user-a
+
+  Description: <span class="comment"># PR 본문 또는 코멘트에 추가로 멘션</span>
+    ## #️⃣연관된 이슈
+    Closes #42
+
+    ## 📝작업 내용
+    - X 기능 추가
+
+    ## 💬 리뷰 요청
+    @user-a (등록됨)
+    @user-b (멘션으로 요청)</pre>
+
+      <h3>요약 표</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>작업자</th><th>리뷰어 등록</th><th>추가 멘션</th><th>Approve 필요</th><th>머지 주체</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge fe">FE</span> 조현재</td>
+            <td class="center">없음</td>
+            <td class="center">없음</td>
+            <td class="center">없음</td>
+            <td class="center">본인 (셀프)</td>
+          </tr>
+          <tr>
+            <td><span class="badge be">BE</span> 그 외</td>
+            <td class="center">1명</td>
+            <td class="center">1명 (@멘션)</td>
+            <td class="center">1명 이상</td>
+            <td class="center">본인</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>머지 주체 — 작성자 원칙</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 8px 0;">→ <strong>PR 올린 당사자(작성자)가 직접 머지</strong>. 리뷰어가 대신 머지 X.</li>
+        <li style="padding: 8px 0;">→ 작성자가 최종 책임 (CI 통과 · 충돌 해결 · 머지 시점 결정).</li>
+        <li style="padding: 8px 0;">→ 머지 방식: <strong>Squash &amp; Merge 권장</strong> (히스토리 정리).</li>
+        <li style="padding: 8px 0;">→ 머지 후 브랜치는 자동 삭제 (GitHub 설정).</li>
+      </ul>
+
+      <div class="callout">
+        <strong>예외</strong>: 작성자가 휴가 등 사유로 머지 불가하면 코멘트로 위임 명시 후 리뷰어가 머지.
+        이 경우 PR 본문에 사유 기록.
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Quality -->
+  <section id="quality" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">Code Quality</div>
+      <h2>린트·포맷·타입</h2>
+      <p class="lede">로컬 도구와 CI에서 동일 도구 사용 (로컬 패스 ≠ CI 패스 방지).</p>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>항목</th><th>도구</th><th>비고</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Python 린트</td><td><code>ruff</code></td><td>uv dev-dependency</td></tr>
+          <tr><td>Python 포맷</td><td><code>ruff format</code></td><td>black 호환</td></tr>
+          <tr><td>Python 타입</td><td><code>mypy</code> 또는 <code>pyright</code></td><td>strict 권장</td></tr>
+          <tr><td>TypeScript 린트</td><td><code>eslint</code> + <code>@typescript-eslint</code></td><td>flat config</td></tr>
+          <tr><td>TypeScript 포맷</td><td><code>prettier</code></td><td>—</td></tr>
+          <tr><td>pre-commit 훅</td><td><code>pre-commit</code> 또는 <code>lefthook</code></td><td>옵션</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Commit Message -->
+  <section id="commit">
+    <div class="container">
+      <div class="eyebrow">Commit Message</div>
+      <h2>Conventional Commits</h2>
+      <p class="lede">제목은 짧고 명확하게. type: scope (optional) — 설명.</p>
+
+      <pre class="code-block">feat:     <span class="comment"># 신규 기능</span>
+fix:      <span class="comment"># 버그 수정</span>
+chore:    <span class="comment"># 빌드 · 의존성 · 잡일</span>
+docs:     <span class="comment"># 문서</span>
+refactor: <span class="comment"># 리팩토링 (동작 변경 없음)</span>
+test:     <span class="comment"># 테스트 추가/수정</span>
+perf:     <span class="comment"># 성능 개선</span>
+
+<span class="comment"># 예시</span>
+feat(gateway): add MCP tool auto-loading from registry
+fix(catalog): resolve embedding search timeout
+chore(deps): bump fastapi to 0.115</pre>
+
+      <h3>본문 (선택)</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 6px 0;">→ 50자 제목 + 빈 줄 + 본문 (필요시)</li>
+        <li style="padding: 6px 0;">→ "why"가 비자명한 경우만 본문 작성</li>
+        <li style="padding: 6px 0;">→ 이슈 참조: <code>Refs #42</code>, <code>Closes #42</code></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div>Protocol K · Development Conventions · 2026-05-18</div>
+      <div>
+        <a href="../../index.html">기획 페이지</a> ·
+        <a href="./architecture.html">아키텍처</a> ·
+        <a href="../setup/sprint-setup.md">Sprint 셋업</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

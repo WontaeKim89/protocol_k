@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protocol K — 개발 아키텍처 및 프레임워크 제안서</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #6b6b6b;
+      --line: #e5e2db;
+      --accent: #2d4a3a;
+      --accent-soft: #e8eee9;
+      --accent-bright: #8fb9a1;
+      --warn: #b85c38;
+      --code-bg: #f3f1ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250, 250, 247, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    nav.top .container { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    nav.top .brand { font-weight: 700; font-size: 17px; }
+    nav.top .brand .dot { color: var(--accent); }
+    nav.top ul { list-style: none; display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
+    nav.top a { color: var(--muted); text-decoration: none; font-size: 13px; transition: color 0.15s; white-space: nowrap; }
+    nav.top a:hover { color: var(--ink); }
+    nav.top .pill {
+      background: var(--accent); color: white; padding: 4px 10px;
+      border-radius: 3px; font-size: 12px; font-weight: 600;
+    }
+
+    header.hero { padding: 110px 0 80px; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; font-weight: 600; }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -0.025em; margin-bottom: 24px;
+    }
+    .hero .lede { font-size: 18px; color: var(--muted); max-width: 720px; }
+
+    section { padding: 80px 0; border-bottom: 1px solid var(--line); }
+    section h2 {
+      font-size: clamp(26px, 3.2vw, 34px);
+      font-weight: 700; letter-spacing: -0.015em;
+      margin-bottom: 16px; line-height: 1.2;
+    }
+    section h2 + .lede {
+      font-size: 16.5px; color: var(--muted);
+      max-width: 760px; margin-bottom: 40px;
+    }
+    h3 { font-size: 19px; font-weight: 700; margin-bottom: 14px; margin-top: 24px; letter-spacing: -0.01em; }
+    h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; margin-top: 20px; }
+
+    p { margin-bottom: 14px; }
+    p.muted { color: var(--muted); }
+
+    /* Summary box */
+    .summary-box {
+      background: var(--ink); color: white;
+      border-radius: 8px; padding: 36px 40px;
+      margin-bottom: 24px;
+    }
+    .summary-box .tag {
+      font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--accent-bright); font-weight: 700; margin-bottom: 14px;
+    }
+    .summary-box p {
+      font-size: 18px; line-height: 1.55; color: rgba(255,255,255,0.9);
+    }
+    .summary-box strong { color: white; }
+
+    /* Why monorepo */
+    .reason-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+      margin-top: 24px;
+    }
+    .reason-card {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 24px; border-radius: 6px;
+    }
+    .reason-card .icon {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--accent);
+      letter-spacing: 0.1em; margin-bottom: 10px; font-weight: 700;
+    }
+    .reason-card h4 { margin-top: 0; }
+    .reason-card p { font-size: 14px; color: var(--muted); margin-bottom: 0; }
+
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+      margin: 16px 0 24px;
+    }
+    .data-table th, .data-table td {
+      padding: 12px 16px; text-align: left;
+      font-size: 14px; border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .data-table th {
+      background: var(--bg); font-size: 11.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); font-weight: 700;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table td.center { text-align: center; }
+    .check { color: var(--accent); font-weight: 700; }
+    .cross { color: var(--warn); font-weight: 700; }
+
+    pre.code-block {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 24px; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px; line-height: 1.7;
+      overflow-x: auto; color: var(--ink);
+      white-space: pre;
+      margin: 16px 0 24px;
+    }
+    pre.code-block .comment { color: var(--muted); }
+    pre.code-block .keyword { color: var(--accent); font-weight: 600; }
+
+    /* Stack diagram */
+    .stack-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stack-card {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 28px; border-radius: 6px;
+    }
+    .stack-card.primary { border-left: 4px solid var(--accent); }
+    .stack-card.secondary { border-left: 4px solid var(--accent-bright); }
+    .stack-card h3 { margin-top: 0; }
+    .stack-card .stack-tag {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; padding: 3px 8px; border-radius: 3px;
+      background: var(--accent-soft); color: var(--accent);
+      font-weight: 700; margin-bottom: 14px;
+    }
+    .stack-list { list-style: none; }
+    .stack-list li {
+      padding: 6px 0; padding-left: 18px; position: relative;
+      font-size: 14px; color: var(--ink);
+    }
+    .stack-list li::before {
+      content: "•"; position: absolute; left: 0;
+      color: var(--accent); font-weight: 700;
+    }
+    .stack-list li .name { font-weight: 600; }
+    .stack-list li .desc { color: var(--muted); font-size: 13px; margin-left: 6px; }
+
+    /* Deploy flow */
+    .deploy-flow {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 32px; border-radius: 6px; margin-bottom: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px; line-height: 1.65;
+      white-space: pre; overflow-x: auto;
+    }
+
+    /* Milestone */
+    .milestone-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; overflow: hidden;
+    }
+    .milestone-table th, .milestone-table td {
+      padding: 14px 18px; text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .milestone-table th {
+      background: var(--bg); font-size: 11.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); font-weight: 700;
+    }
+    .milestone-table tr:last-child td { border-bottom: none; }
+    .milestone-table .week {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700; color: var(--accent); white-space: nowrap;
+    }
+
+    /* TL;DR */
+    .tldr-box {
+      background: var(--accent-soft); border: 1px solid var(--accent);
+      border-radius: 8px; padding: 32px;
+    }
+    .tldr-box h3 { margin-top: 0; color: var(--accent); }
+    .tldr-table { width: 100%; border-collapse: collapse; }
+    .tldr-table td {
+      padding: 10px 0; border-bottom: 1px dashed rgba(45,74,58,0.2);
+      font-size: 14.5px;
+    }
+    .tldr-table td:first-child {
+      font-weight: 700; color: var(--ink); width: 200px;
+    }
+    .tldr-table tr:last-child td { border-bottom: none; }
+
+    footer { padding: 48px 0; color: var(--muted); font-size: 13px; }
+    footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 900px) {
+      .reason-grid, .stack-grid { grid-template-columns: 1fr; }
+      header.hero { padding: 60px 0 50px; }
+      nav.top ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top">
+    <div class="container">
+      <div class="brand">Protocol<span class="dot"> K</span> · 아키텍처 제안서</div>
+      <ul>
+        <li><a href="#summary">요약</a></li>
+        <li><a href="#why-monorepo">모노레포</a></li>
+        <li><a href="#structure">구조</a></li>
+        <li><a href="#backend">Backend</a></li>
+        <li><a href="#frontend">Frontend</a></li>
+        <li><a href="#data">Data</a></li>
+        <li><a href="#deploy">배포</a></li>
+        <li><a href="#milestone">마일스톤</a></li>
+        <li><a href="#tldr">TL;DR</a></li>
+        <li><a href="../../index.html" class="pill">기획서</a></li>
+        <li><a href="./conventions.html" class="pill">컨벤션</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="eyebrow">Development Architecture · Framework Proposal</div>
+      <h1>Protocol K<br/>아키텍처 및 프레임워크 제안서</h1>
+      <p class="lede">
+        대상: Protocol K 공동 개발자 · 상태: 제안 (피드백 환영) ·
+        작성일: 2026-05-18
+      </p>
+    </div>
+  </header>
+
+  <!-- Summary -->
+  <section id="summary">
+    <div class="container">
+      <div class="eyebrow">한 줄 요약</div>
+      <div class="summary-box">
+        <div class="tag">TL;DR</div>
+        <p>
+          한 레포 안에 <strong>backend(FastAPI)</strong>와 <strong>frontend(React+Vite)</strong>를 함께 두고,
+          Python 패키지는 <strong>uv</strong>로, 배포는 <strong>GitHub Actions</strong> 기반으로 통일한다.
+          MCP 게이트웨이·카탈로그 API·변환 파이프라인이 모두 한 곳에서 보이고,
+          의존성·CI·이슈/브랜치 워크플로가 단일 흐름으로 묶인다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why monorepo -->
+  <section id="why-monorepo" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">왜 모노레포</div>
+      <h2>3개 컴포넌트가 같은 계약을 공유한다</h2>
+      <p class="lede">
+        Protocol K의 핵심 컴포넌트들은 <strong style="color:var(--ink);">같은 OAS 스키마·같은 tool 메타 모델·같은 에러 포맷</strong>을 사용합니다.
+        별도 레포로 쪼개면 스키마 정의가 3중 복사되거나 패키지 배포로 분리해야 합니다.
+        모노레포 = 한 PR에서 스키마 변경 + 클라이언트 반영을 동시에 검토 가능.
+      </p>
+
+      <div class="reason-grid">
+        <div class="reason-card">
+          <div class="icon">01</div>
+          <h4>Conversion Pipeline</h4>
+          <p>PDF/HWP → OAS → MCP tool 메타데이터를 생성</p>
+        </div>
+        <div class="reason-card">
+          <div class="icon">02</div>
+          <h4>MCP Gateway (Backend)</h4>
+          <p>변환된 tool을 MCP 프로토콜로 서빙</p>
+        </div>
+        <div class="reason-card">
+          <div class="icon">03</div>
+          <h4>Catalog UI (Frontend)</h4>
+          <p>변환된 tool을 검색·시도하는 사용자 인터페이스</p>
+        </div>
+      </div>
+
+      <h3>별도 레포가 합리적이 되는 시점</h3>
+      <ul style="list-style: none; padding-left: 0; margin-bottom: 8px;">
+        <li style="padding: 6px 0;">→ 외부 사용자가 SDK로 의존 (Phase 4+)</li>
+        <li style="padding: 6px 0;">→ 컴포넌트별 보안 경계 분리 필요 (Phase 5)</li>
+        <li style="padding: 6px 0; color: var(--muted);">→ 그 전까지는 모노레포 유지</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Structure -->
+  <section id="structure">
+    <div class="container">
+      <div class="eyebrow">디렉토리 구조</div>
+      <h2>모노레포 레이아웃</h2>
+      <p class="lede">backend·frontend·pipeline 세 워크스페이스. infra/docs/.claude/.codex/.github 가 공통.</p>
+
+      <pre class="code-block">protocol_k/
+├── backend/                 <span class="comment"># FastAPI: MCP Gateway + Catalog API</span>
+│   ├── pyproject.toml
+│   ├── uv.lock
+│   └── app/
+│       ├── main.py          <span class="comment"># FastAPI entrypoint</span>
+│       ├── mcp/             <span class="comment"># MCP server (FastMCP)</span>
+│       ├── catalog/         <span class="comment"># 검색·메타데이터 API</span>
+│       ├── gateway/         <span class="comment"># 백엔드 API 프록시·정규화</span>
+│       └── shared/
+├── frontend/                <span class="comment"># React + Vite: Catalog UI</span>
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── src/
+│       ├── pages/           <span class="comment"># 카탈로그 · 도구 상세 · Try-it</span>
+│       ├── components/
+│       └── lib/             <span class="comment"># openapi-typescript 자동 생성</span>
+├── pipeline/                <span class="comment"># 오프라인 변환 도구 (CLI)</span>
+│   ├── pyproject.toml       <span class="comment"># uv 별도 워크스페이스</span>
+│   ├── uv.lock
+│   └── src/
+│       ├── extract.py       <span class="comment"># PDF/HWP → OAS LLM</span>
+│       ├── normalize.py     <span class="comment"># OAS → MCP tool meta</span>
+│       └── canary.py        <span class="comment"># 카나리아 호출 검증</span>
+├── infra/
+│   ├── docker/              <span class="comment"># Dockerfile.backend, Dockerfile.frontend</span>
+│   ├── compose/             <span class="comment"># docker-compose.dev.yml</span>
+│   └── deploy/              <span class="comment"># GitHub Actions deploy yaml</span>
+├── docs/
+│   ├── proposal/            <span class="comment"># 이 제안서·컨벤션·기획</span>
+│   ├── setup/               <span class="comment"># Sprint·dev 브랜치 셋업</span>
+│   └── adr/                 <span class="comment"># Architecture Decision Records</span>
+├── index.html               <span class="comment"># 현 기획 페이지</span>
+├── .claude/                 <span class="comment"># Claude Code 스킬·hook</span>
+├── .codex/                  <span class="comment"># Codex CLI 스킬·config</span>
+├── .github/                 <span class="comment"># 워크플로·이슈/PR 템플릿</span>
+├── .gitignore
+└── README.md</pre>
+
+      <h3>핵심 결정</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 8px 0;">→ <strong>backend</strong>와 <strong>pipeline</strong>은 uv 별도 워크스페이스. 의존성 분리 (LLM SDK는 pipeline만).</li>
+        <li style="padding: 8px 0;">→ <strong>frontend</strong>의 API 클라이언트는 backend의 OpenAPI에서 자동 생성 (<code>openapi-typescript</code>).</li>
+        <li style="padding: 8px 0;">→ 공유 스키마는 backend가 단일 소스 = OpenAPI Spec. 프론트는 그것을 소비.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Backend -->
+  <section id="backend" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">Backend</div>
+      <h2>FastAPI + uv</h2>
+      <p class="lede">비동기 IO · OpenAPI 자동 생성 · LangGraph/Pydantic 호환 · FastMCP 친화 · 학습 곡선 낮음.</p>
+
+      <div class="stack-grid">
+        <div class="stack-card primary">
+          <div class="stack-tag">FRAMEWORK</div>
+          <h3>FastAPI 선택 이유</h3>
+          <ul class="stack-list">
+            <li><span class="name">비동기 IO</span><span class="desc">— ASGI. 공공 API 동시 호출 적합</span></li>
+            <li><span class="name">OpenAPI 자동 생성</span><span class="desc">— 우리는 OAS 중심 시스템</span></li>
+            <li><span class="name">Pydantic v2</span><span class="desc">— 사용자 주 스택과 일치</span></li>
+            <li><span class="name">FastMCP 통합</span><span class="desc">— FastAPI 위에 자연스럽게 얹힘</span></li>
+            <li><span class="name">학습 곡선 낮음</span><span class="desc">— 동료에게도 일반적</span></li>
+          </ul>
+          <p class="muted" style="font-size: 13px; margin-top: 14px;">
+            대안: Litestar (생태계 좁음), Node.js (LLM 생태계 거리감).
+          </p>
+        </div>
+
+        <div class="stack-card secondary">
+          <div class="stack-tag">PACKAGE MANAGER</div>
+          <h3>uv 선택 이유</h3>
+          <table class="data-table" style="margin: 0;">
+            <thead>
+              <tr><th>항목</th><th>uv</th><th>poetry</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>속도</td><td>⚡ 10~100배</td><td>느림</td></tr>
+              <tr><td>lockfile</td><td class="check">✓</td><td class="check">✓</td></tr>
+              <tr><td>다중 워크스페이스</td><td class="check">✓</td><td>△</td></tr>
+              <tr><td>Python 버전 관리</td><td class="check">✓</td><td class="cross">✗</td></tr>
+              <tr><td>활발한 개발</td><td class="check">Astral</td><td>정체</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h3>핵심 의존성 (backend/pyproject.toml)</h3>
+      <pre class="code-block">[project]
+name = "protocol-k-backend"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "fastmcp>=0.5",       <span class="comment"># MCP 서버</span>
+    "httpx>=0.27",        <span class="comment"># 백엔드 API 호출</span>
+    "sqlalchemy>=2.0",
+    "asyncpg>=0.29",
+    "pgvector>=0.3",      <span class="comment"># 의미 검색</span>
+    "openai>=1.50",       <span class="comment"># 임베딩</span>
+    "structlog>=24.4",
+]</pre>
+
+      <h3>핵심 의존성 (pipeline/pyproject.toml)</h3>
+      <pre class="code-block">[project]
+name = "protocol-k-pipeline"
+dependencies = [
+    "anthropic>=0.40",    <span class="comment"># 또는 openai</span>
+    "pypdf>=5.0",
+    "hwp5",               <span class="comment"># HWP 파서</span>
+    "pydantic>=2.9",
+    "ruamel-yaml>=0.18",
+]</pre>
+    </div>
+  </section>
+
+  <!-- Frontend -->
+  <section id="frontend">
+    <div class="container">
+      <div class="eyebrow">Frontend</div>
+      <h2>React + Vite</h2>
+      <p class="lede">정적 빌드 = 어디든 배포 가능. Vite 빌드 속도 충분. openapi-typescript 로 backend 스키마 자동 추적.</p>
+
+      <div class="stack-grid">
+        <div class="stack-card primary">
+          <div class="stack-tag">FRAMEWORK</div>
+          <h3>선택 이유</h3>
+          <ul class="stack-list">
+            <li><span class="name">정적 빌드</span><span class="desc">— GitHub Pages·Vercel·Azure 어디든 OK</span></li>
+            <li><span class="name">Vite 속도</span><span class="desc">— 카탈로그 UI 규모에 충분, dev 서버 즉시</span></li>
+            <li><span class="name">OpenAPI 클라이언트</span><span class="desc">— openapi-typescript 자동 생성</span></li>
+            <li><span class="name">디자인 톤 일관</span><span class="desc">— index.html을 컴포넌트화 쉬움</span></li>
+          </ul>
+        </div>
+
+        <div class="stack-card secondary">
+          <div class="stack-tag">PACKAGE MANAGER</div>
+          <h3>pnpm</h3>
+          <p class="muted" style="font-size: 14px;">
+            디스크 효율 + 모노레포 친화. workspace 지원 깔끔.
+            bun도 가능하지만 호환성 이슈 회피 위해 pnpm 우선.
+          </p>
+        </div>
+      </div>
+
+      <h3>핵심 의존성 (frontend/package.json)</h3>
+      <pre class="code-block">{
+  "name": "protocol-k-frontend",
+  "type": "module",
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router-dom": "^7"
+  },
+  "devDependencies": {
+    "vite": "^7",
+    "typescript": "^5.6",
+    "@vitejs/plugin-react": "^5",
+    "openapi-typescript": "^7"
+  }
+}</pre>
+
+      <p class="muted">
+        대안: Next.js (SSR 필요 시 강력하나 우리는 정적 SPA로 충분),
+        SvelteKit (가능하나 React 생태계 우위).
+      </p>
+    </div>
+  </section>
+
+  <!-- Data -->
+  <section id="data" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">Data Layer</div>
+      <h2>PostgreSQL + pgvector</h2>
+      <p class="lede">단일 Postgres로 메타데이터·임베딩 모두 처리. 별도 벡터 DB 불필요.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>용도</th><th>저장소</th><th>비고</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tool 메타데이터</td><td>PostgreSQL</td><td>이름·설명·스키마·예시</td></tr>
+          <tr><td>도구 description 임베딩</td><td>pgvector</td><td>Postgres 확장. ANN 검색</td></tr>
+          <tr><td>변환된 OAS 원본</td><td>git (<code>pipeline/output/*.yaml</code>)</td><td>캐싱 + diff 추적</td></tr>
+          <tr><td>사용자 키 · 호출 로그</td><td>PostgreSQL</td><td>감사 로그용</td></tr>
+        </tbody>
+      </table>
+
+      <p>
+        Phase 1 (100개 도구) 수준은 pgvector로 충분. Phase 4+ 에서 별도 벡터 DB 분리 검토.
+      </p>
+    </div>
+  </section>
+
+  <!-- Deploy -->
+  <section id="deploy">
+    <div class="container">
+      <div class="eyebrow">Deployment</div>
+      <h2>GitHub 중심 배포</h2>
+      <p class="lede">PR 머지 → GitHub Actions → 컴포넌트별 배포 타겟으로 자동 분기.</p>
+
+      <h3>배포 흐름</h3>
+      <div class="deploy-flow">PR 머지 (main / dev)
+   │
+   ▼
+GitHub Actions 실행
+   │
+   ├── backend  ─→  Docker build  ─→  GHCR push  ─→  Azure Container Apps
+   │
+   ├── frontend ─→  Vite build    ─→  GitHub Pages 정적 배포
+   │
+   └── pipeline ─→  CLI 패키지 빌드 (release tag 시)</div>
+
+      <h3>배포 타겟</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>컴포넌트</th><th>호스팅</th><th>이유</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Backend</td><td><strong>Azure Container Apps</strong></td><td>사용자 Azure 경험. Private 환경 대응</td></tr>
+          <tr><td>Frontend</td><td><strong>GitHub Pages</strong></td><td>정적 사이트, 무료, 별도 인프라 X</td></tr>
+          <tr><td>Pipeline</td><td>CLI 배포 (PyPI / GHCR)</td><td>운영자 로컬에서 실행</td></tr>
+          <tr><td>DB</td><td>Azure Database for PostgreSQL</td><td>Container Apps와 동일 리전</td></tr>
+        </tbody>
+      </table>
+
+      <h3>환경 분리</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 6px 0;">→ <code>dev</code> 브랜치 → Dev 환경 (자동 배포)</li>
+        <li style="padding: 6px 0;">→ <code>main</code> 브랜치 → Prod 환경 (수동 승인 + tag 기반)</li>
+        <li style="padding: 6px 0;">→ 워크플로: PR은 <code>dev</code> 로, 안정화 후 <code>main</code> 으로 머지</li>
+      </ul>
+
+      <p class="muted" style="margin-top: 16px;">
+        대안: Vercel (frontend, deploy-to-vercel 스킬 있음 — 프리뷰 배포 필요 시),
+        Fly.io / Railway (backend Phase 1 PoC 단계에 적합).
+      </p>
+    </div>
+  </section>
+
+  <!-- Milestone -->
+  <section id="milestone" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">12주 마일스톤</div>
+      <h2>90일 진행 흐름</h2>
+      <p class="lede">M1 우선, M2·M3 병렬. M4(30개 큐레이션)는 M1 산출물 누적과 함께 진행.</p>
+
+      <table class="milestone-table">
+        <thead>
+          <tr><th>주차</th><th>산출물</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="week">W1~2</td><td>모노레포 스캐폴딩 (backend / frontend / pipeline 골격) + 첫 API(T1) 변환 PoC</td></tr>
+          <tr><td class="week">W3~4</td><td>PDF/HWP → OAS LLM 추출기 PoC (핵심 위험 검증)</td></tr>
+          <tr><td class="week">W5~6</td><td>MCP Gateway 기본 (FastMCP) + 5개 API 변환 완료</td></tr>
+          <tr><td class="week">W7~8</td><td>Catalog API + 의미 검색 (pgvector)</td></tr>
+          <tr><td class="week">W9~10</td><td>Catalog UI (React+Vite) + Try-it 인터랙티브</td></tr>
+          <tr><td class="week">W11~12</td><td>30개 큐레이션 완료 + 데모 시나리오 + KPI 측정 + 발표 자료</td></tr>
+        </tbody>
+      </table>
+
+      <p class="muted" style="margin-top: 16px;">자세한 일정은 <a href="../../index.html#schedule" style="color: var(--accent);">기획 페이지 Schedule 섹션</a> 참조.</p>
+    </div>
+  </section>
+
+  <!-- TL;DR -->
+  <section id="tldr">
+    <div class="container">
+      <div class="eyebrow">결정 사항 정리</div>
+      <h2>한눈에 보는 스택</h2>
+
+      <div class="tldr-box">
+        <h3>TL;DR</h3>
+        <table class="tldr-table">
+          <tr><td>Repo 전략</td><td><strong>모노레포</strong> (한 곳에 backend / frontend / pipeline)</td></tr>
+          <tr><td>Backend 프레임워크</td><td><strong>FastAPI</strong> + FastMCP</td></tr>
+          <tr><td>Backend 패키지</td><td><strong>uv</strong> (워크스페이스 분리)</td></tr>
+          <tr><td>Frontend</td><td><strong>React + Vite</strong> + pnpm</td></tr>
+          <tr><td>DB</td><td><strong>PostgreSQL + pgvector</strong></td></tr>
+          <tr><td>배포</td><td><strong>GitHub Actions</strong> → Azure Container Apps / GitHub Pages</td></tr>
+          <tr><td>Base 브랜치</td><td><code>dev</code> (개발) → <code>main</code> (배포)</td></tr>
+          <tr><td>코드 품질</td><td>ruff + mypy / eslint + prettier</td></tr>
+          <tr><td>워크플로</td><td>이슈 퍼스트 (<a href="./conventions.html" style="color: var(--accent);">conventions.html</a> 참조)</td></tr>
+        </table>
+      </div>
+
+      <p class="muted" style="margin-top: 24px;">
+        이 제안서는 v0.1. 다른 의견 / 누락 영역 (보안 · 모니터링 등) 발견 시
+        GitHub Issue 로 의견 부탁드립니다.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div>Protocol K · Architecture Proposal v0.1 · 2026-05-18</div>
+      <div>
+        <a href="../../index.html">기획 페이지</a> ·
+        <a href="./conventions.html">컨벤션</a> ·
+        <a href="../setup/sprint-setup.md">Sprint 셋업</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

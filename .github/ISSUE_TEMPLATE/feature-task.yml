@@ -1,0 +1,53 @@
+name: Feature / Task
+description: 새로운 기능 or 작업 이슈를 생성합니다.
+labels:
+  - feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        이슈 작성 가이드
+
+        - 제목에는 브랜치 유형 접두사(`[Feature]`, `[Fix]`)를 직접 붙이지 않습니다.
+        - 제목은 작업 내용을 바로 이해할 수 있게 짧고 구체적으로 작성합니다.
+        - 예시: `로그인 실패 시 에러 메시지 개선`, `상품 추천 응답 속도 개선`, `배포 스크립트 정리`
+        - 브랜치 prefix는 아래 `브랜치 유형` 드롭다운으로 결정되며, 이슈 생성 후 제목에도 자동 반영됩니다.
+
+  - type: dropdown
+    id: branch_type
+    attributes:
+      label: 🌿 브랜치 유형
+      description: 자동 생성될 브랜치 prefix를 선택해주세요. `Fix`는 일반 버그 수정, `Hotfix`는 운영/배포 영향이 있는 긴급 수정입니다.
+      options:
+        - Feature
+        - Fix
+        - Hotfix
+        - Chore
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 📝 상세 요구사항 및 개발 내용
+      description: 왜 이 작업이 필요한지, 배경과 목적, 기대 결과를 적어주세요.
+      placeholder: |
+        - 현재 문제 또는 요청 배경
+        - 기대하는 변경 사항
+        - 완료 기준 또는 확인 방법
+    validations:
+      required: true
+
+  - type: textarea
+    id: etc
+    attributes:
+      label: 💬 기타 참고 사항
+      description: 관련 문서, API 명세, notion 등의 링크가 있다면 적어주세요.
+      placeholder: |
+        - Notion:
+        - API Spec:
+    validations:
+      required: false
+
+
