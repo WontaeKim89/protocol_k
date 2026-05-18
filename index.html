@@ -393,6 +393,57 @@
       .core-table-wrap { overflow-x: scroll; }
     }
 
+    /* LLM Usage */
+    .llm-usage-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 40px;
+    }
+    .llm-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 28px;
+      position: relative;
+    }
+    .llm-card.build { border-left: 4px solid var(--accent); }
+    .llm-card.runtime { border-left: 4px solid var(--accent-bright); }
+    .llm-card.ops { border-left: 4px solid var(--warn); }
+    .llm-stage-tag {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; letter-spacing: 0.15em;
+      padding: 3px 8px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 12px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .llm-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .llm-card .llm-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+    .llm-uses { list-style: none; }
+    .llm-uses li {
+      padding: 10px 0 10px 22px; position: relative;
+      font-size: 13px; line-height: 1.55;
+      border-bottom: 1px dashed var(--line);
+    }
+    .llm-uses li:last-child { border-bottom: none; }
+    .llm-uses li::before {
+      content: "▸"; position: absolute; left: 0;
+      color: var(--accent); font-weight: 700;
+    }
+    .llm-uses li strong { color: var(--ink); display: block; margin-bottom: 2px; font-size: 13px; }
+    .llm-uses li span { color: var(--muted); font-size: 12px; }
+    .intensity {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 0.08em;
+      padding: 1px 6px; border-radius: 2px;
+      margin-left: 4px;
+      background: var(--accent); color: white;
+      font-weight: 700;
+    }
+    .intensity.med { background: var(--accent-bright); color: var(--ink); }
+    .intensity.low { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+
+    .llm-cost-table { margin-bottom: 32px; }
+
     /* Tier challenges */
     .challenge-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
@@ -516,6 +567,7 @@
         <li><a href="#pool">API Pool</a></li>
         <li><a href="#core30">코어 30</a></li>
         <li><a href="#phases">확장 단계</a></li>
+        <li><a href="#llm">LLM 계획</a></li>
       </ul>
     </div>
   </nav>
@@ -1301,6 +1353,188 @@
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- LLM Usage -->
+  <section id="llm" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">LLM Usage Plan</div>
+      <h2>어디서 LLM이 필요하고, 얼마나 쓰는가</h2>
+      <p class="lede">
+        Protocol K는 LLM이 핵심에 위치한 시스템입니다. 다만 LLM은 "모든 곳"이 아니라
+        <strong style="color:var(--ink);">명세 변환·메타데이터 보강·검수 보조</strong>에 한정됩니다.
+        디폴트 모델은 <strong style="color:var(--ink);">GPT-5.4 이상</strong>(또는 동급 고품질 모델)이고,
+        검색에는 별도 임베딩 모델을 병행합니다. 강도 표기 — <span class="intensity">HIGH</span> 고품질 필수 / <span class="intensity med">MED</span> 중급 충분 / <span class="intensity low">LOW</span> 작은 모델 또는 임베딩.
+      </p>
+
+      <h3 style="font-size:20px; font-weight:700; margin-bottom:18px; margin-top:8px;">사용처 — 3 단계 구분</h3>
+      <div class="llm-usage-grid">
+        <div class="llm-card build">
+          <div class="llm-stage-tag">BUILD · 오프라인</div>
+          <h3>변환 파이프라인</h3>
+          <p class="llm-sub">API 등록 시 1회. Phase 1에서 토큰 대부분 소모.</p>
+          <ul class="llm-uses">
+            <li>
+              <strong>PDF/HWP → OAS 추출 <span class="intensity">HIGH</span></strong>
+              <span>명세 문서(10~50p)를 OAS 3.1로 변환. 표 구조·함정 파라미터 보존이 관건. GPT-5.4+ 필수.</span>
+            </li>
+            <li>
+              <strong>OAS 메타데이터 보강 <span class="intensity med">MED</span></strong>
+              <span>한글 description → 영어, 누락 예시값 자동 생성, 파라미터 설명 정제.</span>
+            </li>
+            <li>
+              <strong>응답 필드명 표준화 <span class="intensity med">MED</span></strong>
+              <span>XML·JSON 한글 필드(<code>efcyQesitm</code> 등)를 영어 표준 키로 매핑.</span>
+            </li>
+            <li>
+              <strong>MCP tool 이름·설명 생성 <span class="intensity med">MED</span></strong>
+              <span>카테고리 prefix + 동사·명사 표준화. 예: <code>weather.short_forecast</code>.</span>
+            </li>
+            <li>
+              <strong>도구 카테고리 분류 <span class="intensity low">LOW</span></strong>
+              <span>16 카테고리 중 어디 속하는지. 작은 모델 또는 임베딩 분류기로 충분.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="llm-card runtime">
+          <div class="llm-stage-tag">RUNTIME · 사용자 호출</div>
+          <h3>카탈로그 검색·UX</h3>
+          <p class="llm-sub">사용자 행동마다. 빈도 높지만 비용은 작음.</p>
+          <ul class="llm-uses">
+            <li>
+              <strong>도구 의미 검색 임베딩 <span class="intensity low">LOW</span></strong>
+              <span>도구 description은 빌드 타임 1회 임베딩. 사용자 쿼리는 호출마다. LLM 아님 — 전용 임베딩 모델.</span>
+            </li>
+            <li>
+              <strong>검색 결과 재순위 (선택) <span class="intensity med">MED</span></strong>
+              <span>top-K 후보를 LLM이 의도 매칭 점수화. Phase 1엔 생략 가능, Phase 2+에서 검토.</span>
+            </li>
+            <li>
+              <strong>Try-it 입력 자동 채우기 (선택) <span class="intensity med">MED</span></strong>
+              <span>자연어 → 파라미터 추출 ("역삼동 어제 날씨" → nx/ny/base_date). Phase 1 후반 선택 기능.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="llm-card ops">
+          <div class="llm-stage-tag">OPS · 운영·디버깅</div>
+          <h3>유지보수 보조</h3>
+          <p class="llm-sub">Phase 2+ 중심. Phase 1에선 비활성.</p>
+          <ul class="llm-uses">
+            <li>
+              <strong>Schema Drift 자동 재매핑 <span class="intensity">HIGH</span></strong>
+              <span>응답 schema 변화 분석 → 어댑터 자동 수정 제안. 사람 승인 후 반영.</span>
+            </li>
+            <li>
+              <strong>검수 UI 차이 강조 <span class="intensity med">MED</span></strong>
+              <span>LLM 생성 OAS와 사람 수정본의 diff에 자연어 설명 자동 첨부.</span>
+            </li>
+            <li>
+              <strong>카나리아 실패 진단 <span class="intensity med">MED</span></strong>
+              <span>호출 실패 응답·로그를 분석해 원인 추정 + 수정 가이드.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 style="font-size:20px; font-weight:700; margin-bottom:18px;">대략적인 토큰·비용 추정 (Phase 1)</h3>
+      <table class="data-table llm-cost-table">
+        <thead>
+          <tr>
+            <th>작업</th>
+            <th>1건당 토큰</th>
+            <th>건수</th>
+            <th>합계 (토큰)</th>
+            <th>모델</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PDF/HWP → OAS 추출</td>
+            <td>~70K (in 30K + out 5K + 재시도 ×2)</td>
+            <td class="center">30</td>
+            <td><strong>~2.1M</strong></td>
+            <td>GPT-5.4+</td>
+          </tr>
+          <tr>
+            <td>OAS 메타데이터 보강</td>
+            <td>~10K</td>
+            <td class="center">30</td>
+            <td><strong>~300K</strong></td>
+            <td>중급</td>
+          </tr>
+          <tr>
+            <td>응답 필드명 표준화</td>
+            <td>~5K</td>
+            <td class="center">30</td>
+            <td><strong>~150K</strong></td>
+            <td>중급</td>
+          </tr>
+          <tr>
+            <td>tool 이름·설명 생성</td>
+            <td>~2K</td>
+            <td class="center">30</td>
+            <td><strong>~60K</strong></td>
+            <td>중급</td>
+          </tr>
+          <tr>
+            <td>카테고리 분류</td>
+            <td>~1K</td>
+            <td class="center">30</td>
+            <td><strong>~30K</strong></td>
+            <td>소형/임베딩</td>
+          </tr>
+          <tr>
+            <td>도구 description 임베딩</td>
+            <td>~500</td>
+            <td class="center">30</td>
+            <td><strong>~15K</strong></td>
+            <td>embedding-3-large</td>
+          </tr>
+          <tr>
+            <td>데모용 쿼리 임베딩 · 검색 (3개 시나리오 × 100회)</td>
+            <td>~300</td>
+            <td class="center">300</td>
+            <td><strong>~90K</strong></td>
+            <td>embedding-3-large</td>
+          </tr>
+          <tr style="background: var(--bg);">
+            <td colspan="3" style="text-align:right; font-weight:700;">Phase 1 누적 합계</td>
+            <td><strong>~2.7M tokens</strong></td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="kpi-grid">
+        <div class="kpi-box">
+          <div class="kpi-num">~2.7M</div>
+          <div class="kpi-label">Phase 1 빌드 누적 토큰<br/>(30개 변환 + 메타 보강)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">$50~150</div>
+          <div class="kpi-label">대략 비용 추정<br/>(GPT-5.4+ 가격 가정)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">2종</div>
+          <div class="kpi-label">사용 모델 종류<br/>(고품질 LLM + 임베딩)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">~70K</div>
+          <div class="kpi-label">API 1개당 평균 토큰<br/>(변환 + 보강 합산)</div>
+        </div>
+      </div>
+
+      <p class="lede" style="margin-top: 32px; margin-bottom: 0; font-size: 14.5px;">
+        <strong style="color:var(--ink);">비용 관리 전략.</strong>
+        (1) PDF/HWP 추출 결과는 git에 OAS YAML로 저장 → 재변환 시 캐싱.
+        (2) few-shot 예시는 5개 표준 API에서 fixed prompt로 재사용 → 토큰 절감.
+        (3) 중급 작업은 GPT-5.4가 아닌 더 작은 모델로 라우팅 (cost-aware routing).
+        (4) Drift 재매핑은 Phase 2부터 — Phase 1 비용에서 제외.
+        Phase 5 기준 9,000개 변환 시 약 600M~800M tokens 예상 → 캐싱·증분 변환·라우팅으로 절감 가능.
+      </p>
     </div>
   </section>
 
