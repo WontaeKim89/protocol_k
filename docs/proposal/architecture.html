@@ -239,6 +239,7 @@
       <ul>
         <li><a href="#summary">요약</a></li>
         <li><a href="#why-monorepo">모노레포</a></li>
+        <li><a href="#pipeline-split">Pipeline 분리</a></li>
         <li><a href="#structure">구조</a></li>
         <li><a href="#backend">Backend</a></li>
         <li><a href="#frontend">Frontend</a></li>
@@ -270,10 +271,10 @@
       <div class="summary-box">
         <div class="tag">TL;DR</div>
         <p>
-          한 레포 안에 <strong>backend(FastAPI)</strong>와 <strong>frontend(React+Vite)</strong>를 함께 두고,
-          Python 패키지는 <strong>uv</strong>로, 배포는 <strong>GitHub Actions</strong> 기반으로 통일한다.
-          MCP 게이트웨이·카탈로그 API·변환 파이프라인이 모두 한 곳에서 보이고,
-          의존성·CI·이슈/브랜치 워크플로가 단일 흐름으로 묶인다.
+          메인 레포는 <strong>실시간 서비스</strong>(backend FastAPI + frontend React+Vite + 변환된 OAS 저장소)를 묶고,
+          <strong>주기적 batch인 Conversion Pipeline은 별도 레포(<code>protocol_k_pipeline</code>)</strong>로 분리한다.
+          Python 패키지는 <strong>uv</strong>, 배포는 <strong>GitHub Actions</strong> 기반.
+          pipeline은 변환 결과를 메인 레포의 <code>tools/oas/</code> 에 PR로 기여한다.
         </p>
       </div>
     </div>
@@ -282,37 +283,129 @@
   <!-- Why monorepo -->
   <section id="why-monorepo" style="background: var(--surface);">
     <div class="container">
-      <div class="eyebrow">왜 모노레포</div>
-      <h2>3개 컴포넌트가 같은 계약을 공유한다</h2>
+      <div class="eyebrow">왜 모노레포 (메인)</div>
+      <h2>실시간 서비스는 한 곳에서</h2>
       <p class="lede">
-        Protocol K의 핵심 컴포넌트들은 <strong style="color:var(--ink);">같은 OAS 스키마·같은 tool 메타 모델·같은 에러 포맷</strong>을 사용합니다.
-        별도 레포로 쪼개면 스키마 정의가 3중 복사되거나 패키지 배포로 분리해야 합니다.
+        Protocol K의 <strong style="color:var(--ink);">실시간 플랫폼 서비스</strong>(Gateway · Catalog UI)는
+        같은 OAS 스키마·tool 메타 모델·에러 포맷을 공유합니다.
+        별도 레포로 쪼개면 스키마 정의가 중복되거나 패키지 배포로 분리해야 합니다.
         모노레포 = 한 PR에서 스키마 변경 + 클라이언트 반영을 동시에 검토 가능.
       </p>
 
       <div class="reason-grid">
         <div class="reason-card">
           <div class="icon">01</div>
-          <h4>Conversion Pipeline</h4>
-          <p>PDF/HWP → OAS → MCP tool 메타데이터를 생성</p>
+          <h4>MCP Gateway (Backend)</h4>
+          <p>변환된 tool을 MCP 프로토콜로 실시간 서빙</p>
         </div>
         <div class="reason-card">
           <div class="icon">02</div>
-          <h4>MCP Gateway (Backend)</h4>
-          <p>변환된 tool을 MCP 프로토콜로 서빙</p>
-        </div>
-        <div class="reason-card">
-          <div class="icon">03</div>
           <h4>Catalog UI (Frontend)</h4>
           <p>변환된 tool을 검색·시도하는 사용자 인터페이스</p>
         </div>
+        <div class="reason-card">
+          <div class="icon">03</div>
+          <h4>변환된 OAS 저장소</h4>
+          <p>pipeline 산출물(OAS YAML)을 git으로 관리</p>
+        </div>
       </div>
 
-      <h3>별도 레포가 합리적이 되는 시점</h3>
+      <div class="callout" style="background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 6px; padding: 20px 24px; margin-top: 24px;">
+        <strong style="color: var(--accent);">단, Conversion Pipeline은 별도 레포로 분리</strong> —
+        실행 모델(batch vs realtime)·의존성 무게·배포 타깃이 메인 서비스와 다릅니다.
+        자세한 결정 근거는 아래 "Pipeline 분리" 섹션 참조.
+      </div>
+
+      <h3 style="margin-top: 32px;">메인 모노레포에서도 별도 레포가 합리적이 되는 시점</h3>
       <ul style="list-style: none; padding-left: 0; margin-bottom: 8px;">
         <li style="padding: 6px 0;">→ 외부 사용자가 SDK로 의존 (Phase 4+)</li>
         <li style="padding: 6px 0;">→ 컴포넌트별 보안 경계 분리 필요 (Phase 5)</li>
-        <li style="padding: 6px 0; color: var(--muted);">→ 그 전까지는 모노레포 유지</li>
+        <li style="padding: 6px 0; color: var(--muted);">→ 그 전까지는 backend + frontend 모노레포 유지</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Pipeline split -->
+  <section id="pipeline-split">
+    <div class="container">
+      <div class="eyebrow">Conversion Pipeline 분리</div>
+      <h2>Pipeline은 별도 레포로</h2>
+      <p class="lede">
+        메인 레포는 <strong style="color:var(--ink);">실시간 플랫폼 서비스</strong> 담당.
+        Conversion Pipeline은 <strong style="color:var(--ink);">주기적 batch</strong>로 동작 → 별도 레포(<code>protocol_k_pipeline</code>)로 분리합니다.
+      </p>
+
+      <h3>분리 근거 5가지</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>축</th><th>메인 (protocol_k)</th><th>파이프라인 (protocol_k_pipeline)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>실행 모델</td>
+            <td>24/7 long-running</td>
+            <td>Episodic batch (cron / Actions)</td>
+          </tr>
+          <tr>
+            <td>의존성 무게</td>
+            <td>FastAPI · pgvector (가벼움)</td>
+            <td>LLM SDK + PDF/HWP 파서 (수백 MB)</td>
+          </tr>
+          <tr>
+            <td>배포 타깃</td>
+            <td>Azure Container Apps</td>
+            <td>CLI / GitHub Actions / 별도 worker</td>
+          </tr>
+          <tr>
+            <td>릴리즈 주기</td>
+            <td>자주 (사용자 노출 기능)</td>
+            <td>가끔 (새 API 추가 시)</td>
+          </tr>
+          <tr>
+            <td>이미지 크기</td>
+            <td>service만 — 가벼움</td>
+            <td>변환 의존성 격리</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>분리 시 발생하는 비용</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 8px 0;">→ <strong>스키마 중복 위험</strong> — OAS·MCP tool meta 형식을 양쪽이 알아야. 변경 시 양쪽 PR 필요.</li>
+        <li style="padding: 8px 0;">→ <strong>타입 정의 공유 부담</strong> — Pydantic 모델 일관성 유지 필요.</li>
+      </ul>
+
+      <h3>해결 방안 (3종 조합)</h3>
+      <div class="reason-grid">
+        <div class="reason-card">
+          <div class="icon">방안 A</div>
+          <h4>OAS 저장소 = 메인 레포</h4>
+          <p>pipeline 레포가 변환 후 <strong>메인 레포에 PR 자동 생성</strong>. service는 머지된 YAML 읽어서 tool 로드. = pipeline은 메인 레포의 contributor 역할.</p>
+        </div>
+        <div class="reason-card">
+          <div class="icon">방안 B</div>
+          <h4>OAS 표준 포맷 활용</h4>
+          <p>Protocol K 자체 스키마 최소화. Pydantic 모델은 <strong>service 쪽에 집중 유지</strong>. pipeline은 외부 표준(OAS 3.1)만 출력.</p>
+        </div>
+        <div class="reason-card">
+          <div class="icon">방안 C</div>
+          <h4>Phase 2+ 스키마 패키지 분리</h4>
+          <p>schema 변경이 잦아지면 작은 패키지(<code>protocol_k_schemas</code>)로 추출. 양쪽이 의존. <strong>Phase 1엔 도입 X</strong>.</p>
+        </div>
+      </div>
+
+      <h3>두 레포 간 통신 흐름</h3>
+      <div class="deploy-flow" style="background: var(--surface); border: 1px solid var(--line); padding: 32px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.65; white-space: pre; overflow-x: auto; margin: 16px 0 24px;">[ protocol_k_pipeline ]                     [ protocol_k (main) ]
+  ─ PDF / HWP 입력                              ─ FastAPI Gateway
+  ─ LLM 변환 → OAS YAML                          ─ Catalog UI
+  ─ 카나리아 호출 검증                           ─ tools/oas/*.yaml (commit 대상)
+  ─ 결과 git PR 생성  ─────────────────────→   ─ PR 검수 → 머지
+                                              ─ service 재로드 → tool 노출</div>
+
+      <h3>레포 구조 (최종)</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 8px 0;">→ <code>protocol_k</code> (메인) — backend (FastAPI gateway + catalog) + frontend + <code>tools/oas/</code> (변환된 OAS YAML 저장소)</li>
+        <li style="padding: 8px 0;">→ <code>protocol_k_pipeline</code> (별도) — PDF/HWP → OAS CLI/batch + 메인 레포 PR 자동 생성기</li>
       </ul>
     </div>
   </section>
@@ -324,6 +417,7 @@
       <h2>모노레포 레이아웃</h2>
       <p class="lede">backend·frontend·pipeline 세 워크스페이스. infra/docs/.claude/.codex/.github 가 공통.</p>
 
+      <h3>메인 레포 (protocol_k)</h3>
       <pre class="code-block">protocol_k/
 ├── backend/                 <span class="comment"># FastAPI: MCP Gateway + Catalog API</span>
 │   ├── pyproject.toml
@@ -341,13 +435,11 @@
 │       ├── pages/           <span class="comment"># 카탈로그 · 도구 상세 · Try-it</span>
 │       ├── components/
 │       └── lib/             <span class="comment"># openapi-typescript 자동 생성</span>
-├── pipeline/                <span class="comment"># 오프라인 변환 도구 (CLI)</span>
-│   ├── pyproject.toml       <span class="comment"># uv 별도 워크스페이스</span>
-│   ├── uv.lock
-│   └── src/
-│       ├── extract.py       <span class="comment"># PDF/HWP → OAS LLM</span>
-│       ├── normalize.py     <span class="comment"># OAS → MCP tool meta</span>
-│       └── canary.py        <span class="comment"># 카나리아 호출 검증</span>
+├── tools/
+│   └── oas/                 <span class="comment"># pipeline 산출물 (OAS YAML) — PR로 누적</span>
+│       ├── weather.short_forecast.yaml
+│       ├── business.verify_status.yaml
+│       └── ...
 ├── infra/
 │   ├── docker/              <span class="comment"># Dockerfile.backend, Dockerfile.frontend</span>
 │   ├── compose/             <span class="comment"># docker-compose.dev.yml</span>
@@ -363,11 +455,29 @@
 ├── .gitignore
 └── README.md</pre>
 
+      <h3>파이프라인 레포 (protocol_k_pipeline · 별도)</h3>
+      <pre class="code-block">protocol_k_pipeline/
+├── pyproject.toml           <span class="comment"># 독립 uv 프로젝트</span>
+├── uv.lock
+├── src/
+│   ├── cli.py               <span class="comment"># 진입점 (uv run pipeline ...)</span>
+│   ├── extract.py           <span class="comment"># PDF / HWP → OAS LLM</span>
+│   ├── normalize.py         <span class="comment"># OAS → MCP tool meta</span>
+│   ├── canary.py            <span class="comment"># 카나리아 호출 검증</span>
+│   └── pr_publisher.py      <span class="comment"># 메인 레포 PR 자동 생성</span>
+├── inputs/                  <span class="comment"># 원본 PDF / HWP (또는 URL 매니페스트)</span>
+├── outputs/                 <span class="comment"># 로컬 OAS YAML 결과 (push 전)</span>
+├── .github/
+│   └── workflows/
+│       └── nightly-convert.yml  <span class="comment"># 주기 batch + PR 생성</span>
+└── README.md</pre>
+
       <h3>핵심 결정</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 8px 0;">→ <strong>backend</strong>와 <strong>pipeline</strong>은 uv 별도 워크스페이스. 의존성 분리 (LLM SDK는 pipeline만).</li>
+        <li style="padding: 8px 0;">→ <strong>backend</strong>는 단일 uv 프로젝트. pipeline 의존성과 분리.</li>
         <li style="padding: 8px 0;">→ <strong>frontend</strong>의 API 클라이언트는 backend의 OpenAPI에서 자동 생성 (<code>openapi-typescript</code>).</li>
-        <li style="padding: 8px 0;">→ 공유 스키마는 backend가 단일 소스 = OpenAPI Spec. 프론트는 그것을 소비.</li>
+        <li style="padding: 8px 0;">→ <strong>tools/oas/</strong>가 service↔pipeline 의 경계. pipeline은 여기에 PR로 기여, service는 머지된 결과를 로드.</li>
+        <li style="padding: 8px 0;">→ 공유 스키마는 backend가 단일 소스 = OpenAPI Spec.</li>
       </ul>
     </div>
   </section>
@@ -430,16 +540,23 @@ dependencies = [
     "structlog>=24.4",
 ]</pre>
 
-      <h3>핵심 의존성 (pipeline/pyproject.toml)</h3>
-      <pre class="code-block">[project]
+      <h3>핵심 의존성 (protocol_k_pipeline · 별도 레포)</h3>
+      <pre class="code-block"><span class="comment"># protocol_k_pipeline/pyproject.toml</span>
+[project]
 name = "protocol-k-pipeline"
+requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.40",    <span class="comment"># 또는 openai</span>
     "pypdf>=5.0",
     "hwp5",               <span class="comment"># HWP 파서</span>
     "pydantic>=2.9",
     "ruamel-yaml>=0.18",
+    "PyGithub>=2.4",      <span class="comment"># 메인 레포 PR 자동 생성</span>
 ]</pre>
+      <p class="muted" style="margin-top: 8px;">
+        파이프라인은 별도 레포(<code>protocol_k_pipeline</code>)이며 backend의 uv 워크스페이스에 포함되지 않습니다.
+        결정 근거는 위 "Pipeline 분리" 섹션 참조.
+      </p>
     </div>
   </section>
 
@@ -601,7 +718,7 @@ GitHub Actions 실행
       <div class="tldr-box">
         <h3>TL;DR</h3>
         <table class="tldr-table">
-          <tr><td>Repo 전략</td><td><strong>모노레포</strong> (한 곳에 backend / frontend / pipeline)</td></tr>
+          <tr><td>Repo 전략</td><td><strong>메인 모노레포</strong> (backend + frontend + OAS 저장소) · <strong>Pipeline 별도 레포</strong> (<code>protocol_k_pipeline</code>)</td></tr>
           <tr><td>Backend 프레임워크</td><td><strong>FastAPI</strong> + FastMCP</td></tr>
           <tr><td>Backend 패키지</td><td><strong>uv</strong> (워크스페이스 분리)</td></tr>
           <tr><td>Frontend</td><td><strong>React + Vite</strong> + pnpm</td></tr>
