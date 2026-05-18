@@ -1,0 +1,357 @@
+name: Slack Notifications
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    types: [opened, closed, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, closed, reopened]
+  issue_comment:
+    types: [created]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  # -------- Push (commits to main/dev) --------
+  notify-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const e = context.payload;
+            const branch = e.ref.replace('refs/heads/', '');
+            const commits = (e.commits || []).slice(-5);
+            const total = (e.commits || []).length;
+            const repoUrl = e.repository.html_url;
+
+            const commitLines = commits.map(c => {
+              const sha = c.id.substring(0, 7);
+              const msg = (c.message || '').split('\n')[0];
+              return `\`<${c.url}|${sha}>\` ${msg} · _${c.author.name}_`;
+            }).join('\n');
+
+            const payload = {
+              attachments: [{
+                color: "#2d4a3a",
+                blocks: [
+                  {
+                    type: "header",
+                    text: { type: "plain_text", text: `🚀 Push to ${branch}` }
+                  },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*<${repoUrl}|${e.repository.full_name}>* · ${total} commit${total>1?'s':''}` }
+                  },
+                  ...(commitLines ? [{
+                    type: "section",
+                    text: { type: "mrkdwn", text: commitLines }
+                  }] : []),
+                  {
+                    type: "context",
+                    elements: [
+                      { type: "mrkdwn", text: `pushed by *${e.pusher.name}* · <${e.compare}|compare diff>` }
+                    ]
+                  }
+                ]
+              }]
+            };
+
+            const res = await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) core.setFailed(`Slack failed: ${res.status} ${await res.text()}`);
+
+  # -------- Pull Request (open / close / merge) --------
+  notify-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const action = context.payload.action;
+
+            let title, color;
+            if (action === 'opened') {
+              title = '🟦 New Pull Request';
+              color = '#2563eb';
+            } else if (action === 'closed' && pr.merged) {
+              title = '🟣 PR Merged';
+              color = '#8957e5';
+            } else if (action === 'closed') {
+              title = '⚪ PR Closed';
+              color = '#6b7280';
+            } else if (action === 'reopened') {
+              title = '🔄 PR Reopened';
+              color = '#f59e0b';
+            } else if (action === 'ready_for_review') {
+              title = '👀 PR Ready for Review';
+              color = '#2563eb';
+            } else {
+              return;
+            }
+
+            const labels = (pr.labels || []).map(l => `\`${l.name}\``).join(' ') || '_none_';
+            const reviewers = (pr.requested_reviewers || []).map(r => `<${r.html_url}|${r.login}>`).join(', ') || '_none_';
+
+            const payload = {
+              attachments: [{
+                color,
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: title } },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*<${pr.html_url}|#${pr.number} · ${pr.title}>*` },
+                    fields: [
+                      { type: "mrkdwn", text: `*Author*\n<${pr.user.html_url}|${pr.user.login}>` },
+                      { type: "mrkdwn", text: `*Branch*\n\`${pr.head.ref}\` → \`${pr.base.ref}\`` },
+                      { type: "mrkdwn", text: `*Labels*\n${labels}` },
+                      { type: "mrkdwn", text: `*Reviewers*\n${reviewers}` }
+                    ]
+                  },
+                  {
+                    type: "context",
+                    elements: [
+                      { type: "mrkdwn", text: `📝 ${pr.commits} commit${pr.commits>1?'s':''} · ➕${pr.additions} ➖${pr.deletions} · 📄 ${pr.changed_files} file${pr.changed_files>1?'s':''}` }
+                    ]
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      { type: "button", text: { type: "plain_text", text: "View PR" }, url: pr.html_url, style: "primary" }
+                    ]
+                  }
+                ]
+              }]
+            };
+
+            const res = await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) core.setFailed(`Slack failed: ${res.status} ${await res.text()}`);
+
+  # -------- PR Review --------
+  notify-review:
+    if: github.event_name == 'pull_request_review'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const e = context.payload;
+            const r = e.review;
+            const pr = e.pull_request;
+
+            let title, color;
+            if (r.state === 'approved') {
+              title = '✅ Review · Approved';
+              color = '#16a34a';
+            } else if (r.state === 'changes_requested') {
+              title = '🛑 Review · Changes Requested';
+              color = '#b85c38';
+            } else {
+              title = '💬 Review · Commented';
+              color = '#6b7280';
+            }
+
+            const body = (r.body || '').slice(0, 500) || '_no body_';
+
+            const payload = {
+              attachments: [{
+                color,
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: title } },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*<${pr.html_url}|#${pr.number} · ${pr.title}>*\nby <${r.user.html_url}|${r.user.login}>` }
+                  },
+                  ...(r.body ? [{
+                    type: "section",
+                    text: { type: "mrkdwn", text: `> ${body.replace(/\n/g, '\n> ')}` }
+                  }] : []),
+                  {
+                    type: "context",
+                    elements: [
+                      { type: "mrkdwn", text: `PR author: *${pr.user.login}* · <${r.html_url}|view review>` }
+                    ]
+                  }
+                ]
+              }]
+            };
+
+            const res = await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) core.setFailed(`Slack failed: ${res.status} ${await res.text()}`);
+
+  # -------- Issues --------
+  notify-issue:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const e = context.payload;
+            const i = e.issue;
+            const action = e.action;
+
+            let title, color;
+            if (action === 'opened') { title = '🟢 New Issue'; color = '#2d4a3a'; }
+            else if (action === 'closed') { title = '⚪ Issue Closed'; color = '#6b7280'; }
+            else if (action === 'reopened') { title = '🔄 Issue Reopened'; color = '#f59e0b'; }
+            else return;
+
+            const labels = (i.labels || []).map(l => `\`${l.name}\``).join(' ') || '_none_';
+            const assignees = (i.assignees || []).map(a => `<${a.html_url}|${a.login}>`).join(', ') || '_unassigned_';
+            const body = (i.body || '').slice(0, 300);
+
+            const payload = {
+              attachments: [{
+                color,
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: title } },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*<${i.html_url}|#${i.number} · ${i.title}>*` },
+                    fields: [
+                      { type: "mrkdwn", text: `*Author*\n<${i.user.html_url}|${i.user.login}>` },
+                      { type: "mrkdwn", text: `*Assignee*\n${assignees}` },
+                      { type: "mrkdwn", text: `*Labels*\n${labels}` }
+                    ]
+                  },
+                  ...(body && action === 'opened' ? [{
+                    type: "section",
+                    text: { type: "mrkdwn", text: `> ${body.replace(/\n/g, '\n> ')}${i.body.length > 300 ? '\n> _…_' : ''}` }
+                  }] : []),
+                  {
+                    type: "actions",
+                    elements: [
+                      { type: "button", text: { type: "plain_text", text: "View Issue" }, url: i.html_url }
+                    ]
+                  }
+                ]
+              }]
+            };
+
+            const res = await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) core.setFailed(`Slack failed: ${res.status} ${await res.text()}`);
+
+  # -------- Issue / PR Comment --------
+  notify-comment:
+    if: github.event_name == 'issue_comment' && github.event.action == 'created'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const e = context.payload;
+            const c = e.comment;
+            const i = e.issue;
+            const isPR = !!i.pull_request;
+            const kind = isPR ? 'PR' : 'Issue';
+            const body = (c.body || '').slice(0, 500) || '_empty_';
+
+            const payload = {
+              attachments: [{
+                color: '#d4af37',
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: `💬 New Comment on ${kind}` } },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*<${i.html_url}|#${i.number} · ${i.title}>*\nby <${c.user.html_url}|${c.user.login}>` }
+                  },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `> ${body.replace(/\n/g, '\n> ')}${c.body.length > 500 ? '\n> _…_' : ''}` }
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      { type: "button", text: { type: "plain_text", text: "View Comment" }, url: c.html_url }
+                    ]
+                  }
+                ]
+              }]
+            };
+
+            const res = await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) core.setFailed(`Slack failed: ${res.status} ${await res.text()}`);
+
+  # -------- Release --------
+  notify-release:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          script: |
+            const r = context.payload.release;
+            const body = (r.body || '').slice(0, 800);
+
+            const payload = {
+              attachments: [{
+                color: '#f59e0b',
+                blocks: [
+                  { type: "header", text: { type: "plain_text", text: `📦 Release Published · ${r.tag_name}` } },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*<${r.html_url}|${r.name || r.tag_name}>*\nby <${r.author.html_url}|${r.author.login}>` }
+                  },
+                  ...(body ? [{
+                    type: "section",
+                    text: { type: "mrkdwn", text: body.replace(/\n/g, '\n') }
+                  }] : []),
+                  {
+                    type: "actions",
+                    elements: [
+                      { type: "button", text: { type: "plain_text", text: "View Release" }, url: r.html_url, style: "primary" }
+                    ]
+                  }
+                ]
+              }]
+            };
+
+            const res = await fetch(process.env.SLACK_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (!res.ok) core.setFailed(`Slack failed: ${res.status} ${await res.text()}`);

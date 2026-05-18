@@ -37,6 +37,7 @@ open index.html
 | [`docs/proposal/architecture.html`](./docs/proposal/architecture.html) | 개발 아키텍처·프레임워크 제안서 (동료 대상) |
 | [`docs/proposal/conventions.html`](./docs/proposal/conventions.html) | 개발 컨벤션 (이슈·브랜치·PR·리뷰·머지) |
 | [`docs/setup/sprint-setup.md`](./docs/setup/sprint-setup.md) | GitHub Project + Sprint 자동 배정 셋업 가이드 |
+| [`docs/setup/slack-webhook-setup.md`](./docs/setup/slack-webhook-setup.md) | Slack 알림 (Incoming Webhook) 셋업 가이드 |
 
 ---
 
