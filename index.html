@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protocol K — 흩어진 공공 API를 하나의 프로토콜로</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #6b6b6b;
+      --line: #e5e2db;
+      --accent: #2d4a3a;
+      --accent-soft: #e8eee9;
+      --accent-bright: #8fb9a1;
+      --warn: #b85c38;
+      --warn-soft: #fbe9df;
+      --code-bg: #f3f1ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.65;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250, 250, 247, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    nav.top .container { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    nav.top .brand { font-weight: 700; letter-spacing: -0.01em; font-size: 18px; flex-shrink: 0; }
+    nav.top .brand .dot { color: var(--accent); }
+    nav.top ul { list-style: none; display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
+    nav.top a { color: var(--muted); text-decoration: none; font-size: 13px; transition: color 0.15s; white-space: nowrap; }
+    nav.top a:hover { color: var(--ink); }
+
+    header.hero { padding: 140px 0 100px; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; font-weight: 600; }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      margin-bottom: 28px;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero h1 .strike { position: relative; display: inline-block; color: var(--muted); }
+    .hero h1 .strike::after {
+      content: ""; position: absolute; left: -4%; right: -4%; top: 55%;
+      height: 4px; background: var(--warn); transform: rotate(-2deg);
+    }
+    .hero .lede {
+      font-size: 19px; color: var(--muted);
+      max-width: 760px; line-height: 1.6;
+    }
+    .hero .meta {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-top: 56px; padding-top: 32px;
+      border-top: 1px solid var(--line);
+    }
+    .meta-item strong {
+      display: block; font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px; font-weight: 600;
+    }
+    .meta-item span { font-size: 15px; color: var(--ink); }
+
+    section { padding: 96px 0; border-bottom: 1px solid var(--line); }
+    section h2 {
+      font-size: clamp(28px, 3.6vw, 40px);
+      font-weight: 700; letter-spacing: -0.015em;
+      margin-bottom: 16px; line-height: 1.2;
+    }
+    section h2 + .lede {
+      font-size: 17px; color: var(--muted);
+      max-width: 780px; margin-bottom: 56px;
+    }
+
+    /* Problem cards */
+    .problem-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .problem-card {
+      background: var(--surface); padding: 32px;
+      border: 1px solid var(--line); border-radius: 6px;
+      transition: border-color 0.15s;
+    }
+    .problem-card:hover { border-color: var(--accent); }
+    .problem-card .num { font-size: 11px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .problem-card h3 { font-size: 18px; margin-bottom: 10px; font-weight: 700; }
+    .problem-card p { color: var(--muted); font-size: 14.5px; line-height: 1.6; }
+
+    /* Solution */
+    .solution-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
+    .plan-card { background: var(--surface); padding: 36px; border: 1px solid var(--line); border-radius: 6px; }
+    .plan-card.primary { background: var(--ink); color: white; border-color: var(--ink); }
+    .plan-card.primary h3 { color: white; }
+    .plan-card.primary .phase { color: var(--accent-bright); }
+    .plan-card .phase { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 14px; font-weight: 700; color: var(--accent); }
+    .plan-card h3 { font-size: 22px; margin-bottom: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    .plan-card ul { list-style: none; }
+    .plan-card li { padding: 9px 0; padding-left: 22px; position: relative; font-size: 14.5px; border-bottom: 1px solid var(--line); }
+    .plan-card.primary li { color: rgba(255,255,255,0.78); border-bottom-color: rgba(255,255,255,0.08); }
+    .plan-card li:last-child { border-bottom: none; }
+    .plan-card li:before { content: "→"; position: absolute; left: 0; color: var(--accent); font-weight: 600; }
+    .plan-card.primary li:before { color: var(--accent-bright); }
+
+    /* Tier */
+    .tier-row {
+      display: grid; grid-template-columns: 60px 1.4fr 1.4fr 0.7fr;
+      gap: 28px; padding: 28px 0;
+      border-bottom: 1px solid var(--line); align-items: start;
+    }
+    .tier-row:last-child { border-bottom: none; }
+    .tier-badge { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--accent); }
+    .tier-3 .tier-badge { color: var(--warn); }
+    .tier-4 .tier-badge { color: #999; }
+    .tier-row h3 { font-size: 16.5px; margin-bottom: 8px; font-weight: 700; }
+    .tier-row p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .tier-row .example-chips { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .example-chip { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: var(--accent-soft); color: var(--ink); padding: 3px 8px; border-radius: 3px; }
+    .tier-row .meta-line { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .tier-row .feasibility { font-weight: 700; font-size: 18px; color: var(--ink); letter-spacing: -0.01em; }
+    .tier-row .feasibility-label { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Stories */
+    .story-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .story-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 32px; position: relative;
+    }
+    .story-num {
+      position: absolute; top: 24px; right: 28px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); font-weight: 700;
+    }
+    .story-actor {
+      display: inline-block; font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; background: var(--accent-soft);
+      color: var(--accent); padding: 4px 10px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 14px;
+    }
+    .story-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.01em; }
+    .story-card ol { list-style: none; counter-reset: step; }
+    .story-card ol li {
+      counter-increment: step;
+      padding: 8px 0 8px 32px;
+      position: relative;
+      font-size: 13.5px;
+      color: var(--ink);
+      border-bottom: 1px dashed var(--line);
+    }
+    .story-card ol li:last-child { border-bottom: none; }
+    .story-card ol li::before {
+      content: counter(step);
+      position: absolute; left: 0; top: 8px;
+      width: 22px; height: 22px;
+      background: var(--accent); color: white;
+      border-radius: 50%;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+    }
+    .story-module {
+      margin-top: 18px; padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--accent);
+      font-weight: 600; letter-spacing: 0.05em;
+    }
+
+    /* Pipeline */
+    .pipeline { display: grid; grid-template-columns: repeat(11, 1fr); gap: 6px; margin: 16px 0; align-items: center; }
+    .pipe-node { background: var(--surface); border: 1px solid var(--line); padding: 18px 10px; text-align: center; border-radius: 5px; grid-column: span 2; }
+    .pipe-node strong { display: block; margin-bottom: 4px; font-size: 13.5px; font-weight: 700; }
+    .pipe-node span { font-size: 11.5px; color: var(--muted); }
+    .pipe-node.final { background: var(--accent); color: white; border-color: var(--accent); }
+    .pipe-node.final span { color: var(--accent-bright); }
+    .pipe-arrow { text-align: center; color: var(--accent); font-size: 18px; font-weight: 700; grid-column: span 1; }
+
+    .arch-diagram {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 32px; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px; line-height: 1.65;
+      white-space: pre; overflow-x: auto; color: var(--ink);
+    }
+
+    /* Schedule */
+    .schedule-track {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 32px;
+      position: relative;
+    }
+    .track-row {
+      display: grid; grid-template-columns: 140px 1fr;
+      gap: 16px; align-items: center;
+      margin-bottom: 14px;
+    }
+    .track-label {
+      font-size: 13px; font-weight: 700;
+      color: var(--ink);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .track-bar-bg {
+      position: relative; height: 32px;
+      background: var(--bg); border-radius: 4px;
+      border: 1px solid var(--line);
+    }
+    .track-bar {
+      position: absolute; top: 0; bottom: 0;
+      background: var(--accent); color: white;
+      border-radius: 3px;
+      display: flex; align-items: center; padding: 0 12px;
+      font-size: 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden;
+    }
+    .track-bar.secondary { background: var(--accent-bright); color: var(--ink); }
+    .track-bar.warn { background: var(--warn); }
+    .track-weeks {
+      display: grid; grid-template-columns: 140px repeat(12, 1fr);
+      gap: 0; margin-top: 16px;
+      padding-top: 12px; border-top: 1px solid var(--line);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+    }
+    .track-weeks .spacer { grid-column: span 1; }
+    .track-weeks span:not(.spacer) { text-align: center; }
+
+    .risk-card {
+      margin-top: 32px;
+      background: var(--warn-soft);
+      border: 1px solid var(--warn);
+      border-radius: 6px; padding: 28px;
+    }
+    .risk-tag {
+      display: inline-block; font-size: 11px;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      background: var(--warn); color: white;
+      padding: 4px 10px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 14px;
+    }
+    .risk-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .risk-card p { font-size: 14.5px; color: var(--ink); line-height: 1.65; }
+
+    /* KPI */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .kpi-box { background: var(--surface); border: 1px solid var(--line); padding: 28px 24px; border-radius: 6px; }
+    .kpi-num { font-size: 42px; font-weight: 800; color: var(--accent); letter-spacing: -0.03em; line-height: 1; }
+    .kpi-label { font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
+    /* API Pool */
+    .pool-stack {
+      max-width: 880px; margin: 0 auto 48px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .pool-layer {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 20px 28px;
+      display: grid; grid-template-columns: 1fr auto;
+      gap: 24px; align-items: center;
+    }
+    .pool-layer .pool-info { display: flex; flex-direction: column; gap: 4px; }
+    .pool-layer .pool-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .pool-layer .pool-sub { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+    .pool-layer .pool-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px; font-weight: 800; color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .pool-layer.l1 { width: 100%; }
+    .pool-layer.l2 { width: 80%; margin-left: 0; }
+    .pool-layer.l3 { width: 65%; background: var(--accent-soft); border-color: var(--accent); }
+    .pool-layer.l4 { width: 45%; background: var(--accent-soft); border-color: var(--accent); }
+    .pool-layer.l5 { width: 30%; background: var(--accent); border-color: var(--accent); color: white; }
+    .pool-layer.l5 .pool-label { color: var(--accent-bright); }
+    .pool-layer.l5 .pool-sub { color: rgba(255,255,255,0.8); }
+    .pool-layer.l5 .pool-num { color: white; }
+
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px; overflow: hidden;
+    }
+    .data-table th, .data-table td {
+      padding: 14px 16px; text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .data-table th {
+      background: var(--bg);
+      font-size: 12px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      font-weight: 700;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table td.center { text-align: center; }
+    .badge-yes { color: var(--accent); font-weight: 700; }
+    .badge-partial { color: #b88a38; font-weight: 700; }
+    .badge-no { color: var(--warn); font-weight: 700; }
+
+    /* Phases */
+    .phase-stack { display: flex; flex-direction: column; gap: 16px; }
+    .phase-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 140px 140px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    .phase-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.15em;
+      padding: 6px 12px; border-radius: 3px;
+      font-weight: 700; text-align: center;
+      align-self: start;
+    }
+    .phase-1 { background: var(--accent-bright); color: var(--ink); }
+    .phase-2 { background: rgba(143, 185, 161, 0.5); color: white; }
+    .phase-3 { background: rgba(143, 185, 161, 0.3); color: white; }
+    .phase-4 { background: rgba(143, 185, 161, 0.2); color: white; }
+    .phase-5 { background: rgba(143, 185, 161, 0.12); color: white; }
+    .phase-target { color: white; }
+    .phase-target .phase-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 32px; font-weight: 800; color: white;
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .phase-target .phase-period {
+      font-size: 12px; color: rgba(255,255,255,0.55);
+      margin-top: 6px;
+    }
+    .phase-content h3 {
+      font-size: 18px; font-weight: 700; color: white;
+      margin-bottom: 16px; letter-spacing: -0.01em;
+    }
+    .phase-problems { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .problem-axis {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 12px; border-radius: 4px;
+      font-size: 12.5px; color: rgba(255,255,255,0.7);
+      line-height: 1.55;
+    }
+    .problem-axis strong {
+      display: block; color: var(--accent-bright);
+      font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 6px;
+    }
+
+    .dark { background: var(--ink); color: white; }
+    .dark .eyebrow { color: var(--accent-bright); }
+    .dark h2 { color: white; }
+    .dark .lede { color: rgba(255,255,255,0.65); }
+    .dark h3 { color: white; }
+
+    footer { padding: 56px 0; color: var(--muted); font-size: 13px; }
+    footer .container { display: flex; justify-content: space-between; }
+
+    @media (max-width: 980px) {
+      header.hero { padding: 80px 0 60px; }
+      .hero .meta { grid-template-columns: 1fr 1fr; gap: 16px; }
+      .problem-grid, .solution-grid, .roadmap-grid, .kpi-grid, .story-grid { grid-template-columns: 1fr; }
+      .tier-row { grid-template-columns: 1fr; gap: 12px; }
+      .pipeline { grid-template-columns: 1fr; }
+      .pipe-node, .pipe-arrow { grid-column: span 1; }
+      .pipe-arrow { transform: rotate(90deg); padding: 8px 0; }
+      .pool-layer { grid-template-columns: 1fr; }
+      .pool-layer.l1, .pool-layer.l2, .pool-layer.l3, .pool-layer.l4, .pool-layer.l5 { width: 100%; }
+      .phase-card { grid-template-columns: 1fr; gap: 16px; }
+      .phase-problems { grid-template-columns: 1fr 1fr; }
+      .track-weeks { display: none; }
+      .challenge-grid { grid-template-columns: 1fr !important; }
+      .core-table-wrap { overflow-x: scroll; }
+    }
+
+    /* Tier challenges */
+    .challenge-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .challenge-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 28px;
+      display: flex; flex-direction: column;
+    }
+    .challenge-card.t1 { border-top: 4px solid var(--accent-bright); }
+    .challenge-card.t2 { border-top: 4px solid var(--accent); }
+    .challenge-card.t3 { border-top: 4px solid var(--warn); }
+    .challenge-tag {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.12em;
+      padding: 4px 10px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 14px;
+      align-self: flex-start;
+    }
+    .challenge-card.t1 .challenge-tag { background: var(--accent-soft); color: var(--accent); }
+    .challenge-card.t2 .challenge-tag { background: var(--accent); color: white; }
+    .challenge-card.t3 .challenge-tag { background: var(--warn-soft); color: var(--warn); }
+    .challenge-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .challenge-card .sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .challenge-card ol { list-style: none; counter-reset: cstep; }
+    .challenge-card ol li {
+      counter-increment: cstep;
+      padding: 12px 0 12px 30px;
+      position: relative; font-size: 13.5px;
+      border-bottom: 1px dashed var(--line);
+      line-height: 1.55;
+    }
+    .challenge-card ol li:last-child { border-bottom: none; }
+    .challenge-card ol li::before {
+      content: counter(cstep);
+      position: absolute; left: 0; top: 12px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--bg); border: 1px solid var(--line);
+      font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-weight: 700;
+    }
+    .challenge-card .problem { font-weight: 600; color: var(--ink); display: block; margin-bottom: 4px; }
+    .challenge-card .solution { color: var(--muted); font-size: 12.5px; }
+
+    /* Core 30 */
+    .core-cat {
+      margin-bottom: 32px;
+    }
+    .core-cat h3 {
+      font-size: 14px; font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    .core-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px; overflow: hidden;
+      font-size: 13.5px;
+    }
+    .core-table th, .core-table td {
+      padding: 10px 14px; text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .core-table th {
+      background: var(--bg);
+      font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      font-weight: 700;
+    }
+    .core-table tr:last-child td { border-bottom: none; }
+    .core-table td.idx { width: 36px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+    .core-table td.tier { width: 50px; }
+    .core-table td.trap { color: var(--muted); font-size: 12.5px; }
+    .tier-pill {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px; border-radius: 3px;
+    }
+    .tier-pill.t1 { background: var(--accent-soft); color: var(--accent); }
+    .tier-pill.t2 { background: var(--accent); color: white; }
+    .tier-pill.t3 { background: var(--warn-soft); color: var(--warn); }
+    .core-summary {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 40px;
+    }
+    .core-summary-box {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 20px 24px;
+    }
+    .core-summary-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px; font-weight: 800; color: var(--accent);
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .core-summary-label { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <nav class="top">
+    <div class="container">
+      <div class="brand">Protocol<span class="dot"> K</span></div>
+      <ul>
+        <li><a href="#problem">현황</a></li>
+        <li><a href="#solution">솔루션</a></li>
+        <li><a href="#tiers">API 분류</a></li>
+        <li><a href="#challenges">Tier 해결지점</a></li>
+        <li><a href="#stories">시나리오</a></li>
+        <li><a href="#pipeline">아키텍처</a></li>
+        <li><a href="#plan">구현 계획</a></li>
+        <li><a href="#schedule">일정</a></li>
+        <li><a href="#kpi">KPI</a></li>
+        <li><a href="#pool">API Pool</a></li>
+        <li><a href="#core30">코어 30</a></li>
+        <li><a href="#phases">확장 단계</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container">
+      <div class="eyebrow">National AI Competition · 2026</div>
+      <h1>
+        <span class="strike">흩어진 공공 API</span><br />
+        <span class="accent">하나의 프로토콜</span>로.
+      </h1>
+      <p class="lede">
+        Protocol K는 한국 공공 Open API의 파편화된 명세·인증·포맷을
+        MCP(Model Context Protocol)로 일원화하고, 변환된 도구를
+        검색·발견 가능하게 만드는 인프라 플랫폼입니다.
+        이번 1차 범위는 <strong style="color:var(--ink);">변환 + 검색</strong>에 한정합니다.
+        에이전트·워크플로 자동화는 그 다음입니다.
+      </p>
+      <div class="meta">
+        <div class="meta-item"><strong>Domain</strong><span>Public Data Infrastructure</span></div>
+        <div class="meta-item"><strong>Protocol</strong><span>Model Context Protocol</span></div>
+        <div class="meta-item"><strong>1차 Scope</strong><span>MCP-ify + Catalog Search</span></div>
+        <div class="meta-item"><strong>Status</strong><span>Planning · 2026 Q2</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Problem -->
+  <section id="problem">
+    <div class="container">
+      <div class="eyebrow">현황 — Why this matters</div>
+      <h2>10만+ 공공 API, 활용률은 미미</h2>
+      <p class="lede">
+        공공데이터포털(data.go.kr)에 등록된 데이터는 10만 건을 넘지만,
+        기계 가독 명세(OpenAPI Spec)를 제공하는 API는 20% 미만으로 추정됩니다.
+        대부분의 공공 API는 LLM 에이전트가 즉시 사용할 수 없는 형태로 방치되어 있습니다.
+      </p>
+      <div class="problem-grid">
+        <div class="problem-card"><div class="num">01</div><h3>인증 키 이름이 4종</h3><p><code>serviceKey</code>, <code>confmKey</code>, <code>apiKey</code>, <code>KEY</code> — 단일 포털 안에서 표준이 없습니다.</p></div>
+        <div class="problem-card"><div class="num">02</div><h3>응답 포맷 XML 50~60%</h3><p><code>dataType</code>, <code>type</code>, <code>resultType</code>, <code>format</code> — JSON 전환 파라미터 이름조차 통일되어 있지 않습니다.</p></div>
+        <div class="problem-card"><div class="num">03</div><h3>명세는 PDF·HWP·DOCX</h3><p>활용가이드 대부분이 PDF·HWP·DOCX. 자동 코드 생성도, LLM tool 변환도 원천 차단되어 수기 클라이언트 작성 외에는 길이 없습니다.</p></div>
+        <div class="problem-card"><div class="num">04</div><h3>기존 MCP 시도 = 0.01%</h3><p>최대 규모 오픈소스(<code>Koomook/data-go-mcp</code>, 255★)도 6개 API만 커버. 전부 1 API = 1 서버의 수작업 래핑입니다.</p></div>
+        <div class="problem-card"><div class="num">05</div><h3>네이밍·페이지네이션 카오스</h3><p><code>base_date</code>(snake) · <code>pageNo</code>(camel) · <code>LAWD_CD</code>(SCREAMING)가 한 포털 안에 공존. 페이지네이션도 제각각입니다.</p></div>
+        <div class="problem-card"><div class="num">06</div><h3>에러 표현 비일관</h3><p>HTTP 200 OK + body 안 에러 코드, <code>resultCode</code> 값이 API마다 다름(<code>00</code>/<code>OK</code>/<code>NORMAL_SERVICE</code>).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Solution -->
+  <section id="solution" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">솔루션 — What we build</div>
+      <h2>변환 + 검색. 그 다음이 에이전트.</h2>
+      <p class="lede">
+        Protocol K의 1차 가치는 두 가지로 정확히 한정됩니다.
+        에이전트, Composite, Tool Router, Workflow Composer 같은 상위 기능은
+        이 인프라 위에 자연스럽게 올라가는 2차 단계입니다.
+        견고한 1단계 없이는 그 위 어떤 기능도 모래성입니다.
+      </p>
+      <div class="solution-grid">
+        <div class="plan-card primary">
+          <div class="phase">Phase 1 — 이번 대회 범위</div>
+          <h3>MCP-ify + Catalog Search</h3>
+          <ul>
+            <li>다양한 포맷의 공공 API를 단일 MCP tool로 변환하는 파이프라인</li>
+            <li>변환된 도구의 키워드 + 의미 검색 (임베딩 색인)</li>
+            <li>인증 키·응답 포맷·에러 정규화 게이트웨이</li>
+            <li>도구 상세 페이지 + 인터랙티브 Try-it 호출</li>
+            <li>변환 비용·자동화율·카나리아 통과율 등 KPI 추적</li>
+          </ul>
+        </div>
+        <div class="plan-card">
+          <div class="phase">Phase 2+ — Roadmap</div>
+          <h3>그 위에 올라가는 것들</h3>
+          <ul>
+            <li>의미 기반 Tool Router (LLM에 top-K만 주입)</li>
+            <li>Composite Tools (멀티 API 묶음)</li>
+            <li>Resolver Tools (행정코드 자동 변환)</li>
+            <li>Schema Drift 자동 감지·재매핑</li>
+            <li>Key Pool · Quota · Audit Log</li>
+            <li>Workflow Composer (자연어 → 정기 리포트)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tiers -->
+  <section id="tiers">
+    <div class="container">
+      <div class="eyebrow">핵심 분석 — Conversion feasibility</div>
+      <h2>공공 API 4-Tier 분류</h2>
+      <p class="lede">
+        MCP 변환 가능성을 기준으로 공공 API를 네 단계로 분류합니다.
+        <strong style="color:var(--ink);">T1 + T2 = 약 70%</strong>. 이번 1차 범위는
+        T1을 완전 자동화하고 T2에 어댑터 패턴을 일반화하는 데 집중합니다.
+      </p>
+
+      <div class="tier-row tier-1">
+        <div class="tier-badge">T1</div>
+        <div>
+          <h3>즉시 변환 가능 — REST + JSON + OAS</h3>
+          <p>표준 REST + JSON 응답 + OpenAPI Spec 제공. 1:1 자동 매핑 가능.</p>
+          <div class="example-chips"><span class="example-chip">국세청 사업자상태</span><span class="example-chip">odcloud.kr 신규 API</span></div>
+        </div>
+        <div>
+          <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
+          <p>OAS → MCP tool 자동 생성기. <code>serviceKey</code> 주입 외 추가 처리 거의 없음.</p>
+          <p class="meta-line">변환 비용 · 평균 30분/건</p>
+        </div>
+        <div><div class="feasibility">~10%</div><div class="feasibility-label">전체 비중</div></div>
+      </div>
+
+      <div class="tier-row tier-2">
+        <div class="tier-badge">T2</div>
+        <div>
+          <h3>어댑터 필요 — XML default / PDF 명세 / 함정 파라미터</h3>
+          <p>REST지만 XML 응답이 기본, 명세는 PDF·HWP. 격자좌표·법정동코드 같은 도메인 코드 변환 필요.</p>
+          <div class="example-chips"><span class="example-chip">기상청 단기예보</span><span class="example-chip">국토부 실거래가</span><span class="example-chip">도로명주소</span><span class="example-chip">식약처 의약품</span></div>
+        </div>
+        <div>
+          <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
+          <p>LLM 기반 PDF/HWP 명세 추출 → OAS draft → 사람 검수 → 응답 정규화 어댑터 적용.</p>
+          <p class="meta-line">변환 비용 · 평균 2~4시간/건</p>
+        </div>
+        <div><div class="feasibility">~60%</div><div class="feasibility-label">전체 비중 · 메인 타겟</div></div>
+      </div>
+
+      <div class="tier-row tier-3">
+        <div class="tier-badge">T3</div>
+        <div>
+          <h3>커스텀 핸들러 — SOAP / 특이 인증 / 파일 응답</h3>
+          <p>비표준 프로토콜, HMAC 서명, 응답이 ZIP/CSV/HWP 파일 등 케이스별 코드 필요.</p>
+          <div class="example-chips"><span class="example-chip">일부 금감원 API</span><span class="example-chip">SOAP 레거시</span><span class="example-chip">bulk 파일 dump</span></div>
+        </div>
+        <div>
+          <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
+          <p>API별 hand-written 핸들러. 단일 MCP tool 안에 다운로드·파싱·변환 캡슐화.</p>
+          <p class="meta-line">변환 비용 · 평균 1~2일/건</p>
+        </div>
+        <div><div class="feasibility">~20%</div><div class="feasibility-label">대표 사례 2건만</div></div>
+      </div>
+
+      <div class="tier-row tier-4">
+        <div class="tier-badge">T4</div>
+        <div>
+          <h3>거의 불가 — 인증서 / CAPTCHA / Stateful</h3>
+          <p>공인인증서·행정전자서명·CAPTCHA·멀티스텝 폼 등 자동화 자체가 차단된 케이스.</p>
+          <div class="example-chips"><span class="example-chip">홈택스 일부</span><span class="example-chip">ActiveX 의존</span></div>
+        </div>
+        <div>
+          <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
+          <p>대회 범위 제외. 추후 "사용자 본인 토큰 주입" 방식 검토.</p>
+          <p class="meta-line">변환 비용 · N/A</p>
+        </div>
+        <div><div class="feasibility">~10%</div><div class="feasibility-label">의도적 제외</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tier Challenges -->
+  <section id="challenges" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">Tier별 해결 지점 — Problems to solve</div>
+      <h2>각 Tier가 궁극적으로 100% 동작하려면</h2>
+      <p class="lede">
+        T1·T2·T3 모두 궁극(Phase 5)에는 자동 변환 가능해야 합니다.
+        각 Tier가 "쉽다 / 어렵다"는 평균치일 뿐, 실제로는 각각 풀어야 할 구체 문제들이 있습니다.
+        아래는 Phase 1~5에 걸쳐 점진적으로 해결될 문제 목록입니다.
+      </p>
+
+      <div class="challenge-grid">
+        <div class="challenge-card t1">
+          <div class="challenge-tag">TIER 1</div>
+          <h3>표면적 쉬움 · 함정 5</h3>
+          <div class="sub">REST + JSON + OAS가 있다고 끝이 아님.</div>
+          <ol>
+            <li>
+              <span class="problem">OAS 품질 편차</span>
+              <span class="solution">description 한글·누락·모호. LLM 메타데이터 보강기로 영문 description·예시 자동 생성.</span>
+            </li>
+            <li>
+              <span class="problem">인증 위치 변형</span>
+              <span class="solution">같은 odcloud 안에도 header 인증과 query 인증이 혼재. Auth Mapper에서 위치 추상화.</span>
+            </li>
+            <li>
+              <span class="problem">MCP tool 이름 충돌</span>
+              <span class="solution">자동 생성 시 도구명 중복. 카테고리 prefix 규칙(<code>weather.short_forecast</code>) 강제.</span>
+            </li>
+            <li>
+              <span class="problem">OpenAPI 2.0 vs 3.1</span>
+              <span class="solution">공공 OAS 일부 Swagger 2.0. OAS 3.1로 자동 컨버터 내장.</span>
+            </li>
+            <li>
+              <span class="problem">에러 body 비표준</span>
+              <span class="solution">JSON 응답이라도 에러 시 body 다름. T2와 공유하는 에러 정규화 미들웨어로 처리.</span>
+            </li>
+          </ol>
+        </div>
+
+        <div class="challenge-card t2">
+          <div class="challenge-tag">TIER 2 · 메인</div>
+          <h3>어댑터 일반화 · 6대 도전</h3>
+          <div class="sub">공공 API 70%가 여기. 해결되면 사실상 끝.</div>
+          <ol>
+            <li>
+              <span class="problem">PDF/HWP → OAS 추출 정확도 ⚠</span>
+              <span class="solution">표 구조 보존 파서 + LLM + 사람 검수 UI. 핵심 위험. Phase 1 첫 2주 PoC.</span>
+            </li>
+            <li>
+              <span class="problem">XML → JSON 응답 변환</span>
+              <span class="solution">명세 기반 매핑 함수. 한글 필드명(<code>efcyQesitm</code>) → 영어 표준 키 LLM 매핑.</span>
+            </li>
+            <li>
+              <span class="problem">함정 파라미터 (격자좌표·법정동·통계분류)</span>
+              <span class="solution">Phase 1: 입력 description에 명시. Phase 2+: Resolver tool로 자동 변환.</span>
+            </li>
+            <li>
+              <span class="problem">에러 정규화</span>
+              <span class="solution">HTTP 200 + body 안 <code>resultCode</code> → 표준 HTTP status + <code>{error:{code,msg}}</code>.</span>
+            </li>
+            <li>
+              <span class="problem">페이지네이션 4종 통일</span>
+              <span class="solution"><code>pageNo+numOfRows</code> / <code>currentPage+countPerPage</code> / <code>objL*</code> → 표준 cursor+limit.</span>
+            </li>
+            <li>
+              <span class="problem">인증 키 다양성 + URL 인코딩</span>
+              <span class="solution"><code>serviceKey</code>/<code>confmKey</code>/<code>apiKey</code> + 인코딩/디코딩 키 두 종. 백엔드별 메타데이터 + 게이트웨이 자동 처리.</span>
+            </li>
+          </ol>
+        </div>
+
+        <div class="challenge-card t3">
+          <div class="challenge-tag">TIER 3</div>
+          <h3>커스텀 핸들러 · 5 도전</h3>
+          <div class="sub">Phase 4부터 본격. 라이브러리화가 관건.</div>
+          <ol>
+            <li>
+              <span class="problem">SOAP 추출</span>
+              <span class="solution">WSDL → OAS 변환기 또는 SOAP 직접 어댑터.</span>
+            </li>
+            <li>
+              <span class="problem">HMAC / 세션 / OAuth</span>
+              <span class="solution">토큰 갱신 백그라운드 잡 + 보안 저장소.</span>
+            </li>
+            <li>
+              <span class="problem">파일 응답 (ZIP / CSV / HWP)</span>
+              <span class="solution">다운로드 → 압축 해제 → 파싱 → JSON 변환을 단일 tool 안에 캡슐화.</span>
+            </li>
+            <li>
+              <span class="problem">Stateful 멀티-스텝 흐름</span>
+              <span class="solution">여러 API 호출을 단일 MCP tool 내부 워크플로로 hardcode.</span>
+            </li>
+            <li>
+              <span class="problem">bulk dump 크기 제어</span>
+              <span class="solution">streaming / 페이징 / 캐싱 정책으로 응답 사이즈 관리.</span>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <p class="lede" style="margin-top: 36px; margin-bottom: 0; font-size: 15px;">
+        <strong style="color:var(--ink);">핵심 인사이트.</strong>
+        T2 6개 문제 풀면 공공 API 70% 흡수. T3 5개 풀면 90% 도달.
+        T1은 T2 인프라(에러 정규화·tool 명명·인증 매핑) 위에서 거의 자동으로 흡수됨.
+      </p>
+    </div>
+  </section>
+
+  <!-- Stories -->
+  <section id="stories" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">사용자 시점 — 3가지 스토리</div>
+      <h2>Phase 1이 실제로 어떻게 동작하는가</h2>
+      <p class="lede">
+        운영자가 새 API를 등록하고, AI 개발자가 그것을 자기 앱에서 호출하며,
+        일반 사용자는 카탈로그에서 도구를 검색합니다.
+        세 시나리오의 합 = Phase 1의 전부입니다.
+      </p>
+      <div class="story-grid">
+        <div class="story-card">
+          <div class="story-num">01</div>
+          <div class="story-actor">운영자</div>
+          <h3>API 1개 등록하기</h3>
+          <ol>
+            <li>기상청 PDF 활용가이드 업로드</li>
+            <li>LLM이 OpenAPI Spec 초안 자동 생성</li>
+            <li>검수 화면에서 운영자 확인·수정</li>
+            <li>카나리아 호출로 실제 백엔드 검증</li>
+            <li>OAS → MCP tool 자동 생성</li>
+            <li>Registry + 임베딩 색인 등록</li>
+          </ol>
+          <div class="story-module">→ Module 1 (Conversion Pipeline) 영역</div>
+        </div>
+        <div class="story-card">
+          <div class="story-num">02</div>
+          <div class="story-actor">AI 개발자</div>
+          <h3>MCP 서버 사용하기</h3>
+          <ol>
+            <li>Protocol K 가입 → 통합 키 1개 발급</li>
+            <li>Claude Desktop / LangGraph에 endpoint 등록</li>
+            <li>키 1개로 30개 도구 모두 호출 가능</li>
+            <li>Gateway가 백엔드 키·포맷 자동 매핑</li>
+          </ol>
+          <div class="story-module">→ Module 2 (MCP Gateway) 영역</div>
+        </div>
+        <div class="story-card">
+          <div class="story-num">03</div>
+          <div class="story-actor">일반 사용자</div>
+          <h3>필요한 도구 찾기</h3>
+          <ol>
+            <li>웹 카탈로그 접속</li>
+            <li>"동네 미세먼지" 자연어로 검색</li>
+            <li>임베딩 검색 결과 top 5 표시</li>
+            <li>도구 상세 페이지에서 입력/응답 확인</li>
+            <li>Try-it 버튼으로 즉석 호출 검증</li>
+            <li>endpoint를 자기 MCP 클라이언트에 등록</li>
+          </ol>
+          <div class="story-module">→ Module 3 (Catalog Service) 영역</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline -->
+  <section id="pipeline">
+    <div class="container">
+      <div class="eyebrow">변환 파이프라인</div>
+      <h2>명세 → MCP Tool 자동 생성 흐름</h2>
+      <p class="lede">
+        PDF·HWP·HTML로 흩어진 명세를 기계 가독 OpenAPI Spec으로 정규화한 뒤
+        MCP tool로 변환하고, 검색 가능한 카탈로그에 등록합니다.
+        각 단계는 독립 모듈로 구성되어 신규 API 추가 시 재사용됩니다.
+      </p>
+      <div class="pipeline">
+        <div class="pipe-node"><strong>① 수집</strong><span>PDF / HWP / HTML / OAS</span></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node"><strong>② 추출</strong><span>LLM 명세 파싱</span></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node"><strong>③ 검수</strong><span>사람 + 카나리아</span></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node"><strong>④ 정규화</strong><span>OAS 3.1 표준</span></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node final"><strong>⑤ MCP + Catalog</strong><span>tool 등록 + 임베딩</span></div>
+      </div>
+
+      <div style="margin-top: 56px;">
+        <div class="eyebrow">시스템 구조</div>
+        <h2 style="margin-top:12px;">아키텍처 개요</h2>
+        <p class="lede">
+          MCP Gateway가 사용자(MCP 클라이언트)와 공공 API 사이에 위치합니다.
+          Catalog Service는 변환된 도구의 검색·발견을 담당하고,
+          Conversion Pipeline은 오프라인에서 명세를 정규화합니다.
+        </p>
+        <div class="arch-diagram">┌────────────────────────────────────────────────────────────────┐
+│   MCP Client  (Claude Desktop / LangGraph / ChatGPT / etc.)    │
+└────────────────────────────┬───────────────────────────────────┘
+                             │  MCP  (stdio / SSE / HTTP)
+            ┌────────────────┴─────────────────┐
+            ▼                                  ▼
+┌───────────────────────┐         ┌────────────────────────────┐
+│  Catalog Service      │         │  MCP Gateway               │
+│  ─ 키워드 검색         │         │  ─ Tool Registry           │
+│  ─ 의미 검색 (임베딩)   │         │  ─ Auth Mapper             │
+│  ─ 16개 카테고리 분류   │         │  ─ Request Adapter         │
+│  ─ Try-it 인터페이스   │         │  ─ Response Normalizer     │
+└───────────┬───────────┘         └────────────┬───────────────┘
+            │                                  │
+            └──────────────┬───────────────────┘
+                           ▼
+            ┌──────────────────────────────┐
+            │  Conversion Pipeline (오프라인) │
+            │  PDF / HWP → OAS → MCP Tool   │
+            └──────────────┬───────────────┘
+                           ▼
+        ┌──────────────────────────────────────────┐
+        │  공공 API 백엔드                          │
+        │  기상청 · 국세청 · 국토부 · KOSIS · 식약처 ··· │
+        └──────────────────────────────────────────┘</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Implementation Plan -->
+  <section id="plan" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">구현 계획 — Phase 1</div>
+      <h2>1단계 = 프로젝트 난이도의 90%</h2>
+      <p class="lede">
+        에이전트·Composite·Router 같은 상위 기능은 의도적으로 미룹니다.
+        Phase 1에서 변환·등록·검색을 끝까지 완성하는 것이 이 프로젝트의 핵심 가치입니다.
+        4개 모듈로 분할하여 병렬 진행 가능합니다.
+      </p>
+      <div class="solution-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="plan-card">
+          <div class="phase">Module 1 · 통역 공장</div>
+          <h3>Conversion Pipeline</h3>
+          <ul>
+            <li>OAS 자동 wrapper (T1 100% 자동 변환)</li>
+            <li>PDF / HWP → OAS LLM 추출기</li>
+            <li>응답 어댑터 (XML → JSON 표준 스키마)</li>
+            <li>인증 키 이름 정규화 (4종 → 1종)</li>
+            <li>에러 응답 정규화 (HTTP status + 표준 body)</li>
+            <li>카나리아 검증 + 사람 검수 UI</li>
+          </ul>
+        </div>
+        <div class="plan-card">
+          <div class="phase">Module 2 · 프록시</div>
+          <h3>MCP Gateway</h3>
+          <ul>
+            <li>FastMCP 기반 단일 서버 (Python)</li>
+            <li>Tool Registry (변환 결과 자동 로드)</li>
+            <li>키 프록시 (사용자 키 1개 → 백엔드 키 매핑)</li>
+            <li>Quota 카운터 + 호출 로그</li>
+            <li>Claude Desktop / LangGraph 연결 시연</li>
+          </ul>
+        </div>
+        <div class="plan-card">
+          <div class="phase">Module 3 · 사서</div>
+          <h3>Catalog Service</h3>
+          <ul>
+            <li>도구 메타데이터 DB (이름·설명·스키마·예시)</li>
+            <li>키워드 검색 (FTS)</li>
+            <li>의미 검색 (임베딩 색인 + ANN, pgvector)</li>
+            <li>16개 카테고리 분류 (data.go.kr 기준)</li>
+            <li>"Try it" 인터랙티브 호출 화면</li>
+            <li>도구 상세 페이지 (입력 / 응답 / 샘플)</li>
+          </ul>
+        </div>
+        <div class="plan-card">
+          <div class="phase">Module 4 · 실증</div>
+          <h3>Coverage &amp; Demo</h3>
+          <ul>
+            <li>코어 API 30개 수동 큐레이션 (T1 · T2)</li>
+            <li>T3 대표 사례 2개 (확장 가능성 증명)</li>
+            <li>PDF → OAS 자동 변환 PoC 1건</li>
+            <li>경진대회 데모 시나리오 3개</li>
+            <li>변환 자동화율·검색 정확도 측정 리포트</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schedule -->
+  <section id="schedule">
+    <div class="container">
+      <div class="eyebrow">일정 — 12 weeks</div>
+      <h2>대회 기간 12주 진행 흐름</h2>
+      <p class="lede">
+        M1 우선, M2·M3 병렬, M4는 M1 산출물이 누적되면서 점진적으로 채워갑니다.
+        첫 2주는 가장 큰 위험(PDF/HWP → OAS 추출 정확도) 검증에 집중합니다.
+      </p>
+      <div class="schedule-track">
+        <div class="track-row">
+          <div class="track-label">M1 Pipeline</div>
+          <div class="track-bar-bg"><div class="track-bar" style="left:0%; width:55%;">5개 수동 → 자동화 강화</div></div>
+        </div>
+        <div class="track-row">
+          <div class="track-label">M2 Gateway</div>
+          <div class="track-bar-bg"><div class="track-bar secondary" style="left:25%; width:45%;">기본 구조 → 마무리</div></div>
+        </div>
+        <div class="track-row">
+          <div class="track-label">M3 Catalog</div>
+          <div class="track-bar-bg"><div class="track-bar secondary" style="left:50%; width:35%;">검색 + UI</div></div>
+        </div>
+        <div class="track-row">
+          <div class="track-label">M4 Coverage</div>
+          <div class="track-bar-bg"><div class="track-bar" style="left:16%; width:67%;">5 → 15 → 30개</div></div>
+        </div>
+        <div class="track-row">
+          <div class="track-label">Demo + KPI</div>
+          <div class="track-bar-bg"><div class="track-bar warn" style="left:75%; width:25%;">시나리오 + 발표</div></div>
+        </div>
+        <div class="track-weeks">
+          <span class="spacer"></span>
+          <span>W1</span><span>W2</span><span>W3</span><span>W4</span>
+          <span>W5</span><span>W6</span><span>W7</span><span>W8</span>
+          <span>W9</span><span>W10</span><span>W11</span><span>W12</span>
+        </div>
+      </div>
+
+      <div class="risk-card">
+        <div class="risk-tag">⚠ 핵심 위험</div>
+        <h3>M1 — PDF/HWP → OAS LLM 추출 정확도</h3>
+        <p>이 단계가 70%를 못 채우면 자동화율 KPI 미달 + 30개 큐레이션 사람 시간 폭증 + 확장성 어필 실패. <strong>첫 2주 PoC에서 5개 다양한 API로 정확도 측정 → 안 되면 Plan B (사람 작성 가이드 + 부분 자동화)로 즉시 전환.</strong> 위험을 후순위로 미루지 않는다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPI -->
+  <section id="kpi" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">대회 목표 — 측정 가능 KPI</div>
+      <h2>객관 수치로 검증</h2>
+      <p class="lede">
+        정성적 가치(공공 인프라 임팩트) 외에 객관적 수치로 검증 가능한 지표를 사전에 정의합니다.
+        모든 수치는 데모 시연 직전 측정·공개합니다.
+      </p>
+      <div class="kpi-grid">
+        <div class="kpi-box"><div class="kpi-num">30+</div><div class="kpi-label">변환 완료 공공 API 수<br/>(T1 + T2 + T3 합산)</div></div>
+        <div class="kpi-box"><div class="kpi-num">70%</div><div class="kpi-label">T1 + T2 변환 자동화율<br/>(LLM 추출 → 사람 검수 시간 단축)</div></div>
+        <div class="kpi-box"><div class="kpi-num">&lt;3s</div><div class="kpi-label">의미 검색 p95 응답시간<br/>(100개 도구 색인 기준)</div></div>
+        <div class="kpi-box"><div class="kpi-num">100%</div><div class="kpi-label">변환 API 카나리아 통과율<br/>(매일 자동 호출 검증)</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- API Pool -->
+  <section id="pool">
+    <div class="container">
+      <div class="eyebrow">API Pool Strategy</div>
+      <h2>전체 풀 vs 1단계 풀</h2>
+      <p class="lede">
+        궁극 목표 = "기술적으로 MCP 변환 가능한 모든 공공 API". 하지만 대회 기간은 12주.
+        파레토 법칙으로 활용도 상위 30개에 집중합니다.
+        아래 스택은 풀이 점진적으로 좁혀지는 흐름을 시각화한 것입니다.
+      </p>
+
+      <div class="pool-stack">
+        <div class="pool-layer l1">
+          <div class="pool-info">
+            <div class="pool-label">전체 공공 데이터 풀</div>
+            <div class="pool-sub">data.go.kr 등록 데이터셋 (파일 + API 포함)</div>
+          </div>
+          <div class="pool-num">~100,000</div>
+        </div>
+        <div class="pool-layer l2">
+          <div class="pool-info">
+            <div class="pool-label">OpenAPI만 추린 풀</div>
+            <div class="pool-sub">파일 데이터 제외, REST/SOAP 등 호출 가능한 API만</div>
+          </div>
+          <div class="pool-num">~30,000</div>
+        </div>
+        <div class="pool-layer l3">
+          <div class="pool-info">
+            <div class="pool-label">변환 가능 풀 (T1+T2+T3)</div>
+            <div class="pool-sub">기술적으로 MCP 변환 가능한 API · 우리 궁극 목표</div>
+          </div>
+          <div class="pool-num">~27,000</div>
+        </div>
+        <div class="pool-layer l4">
+          <div class="pool-info">
+            <div class="pool-label">활용도 상위 80% 풀</div>
+            <div class="pool-sub">파레토 — 활용신청 누적의 80%가 여기 집중 (추정)</div>
+          </div>
+          <div class="pool-num">~200</div>
+        </div>
+        <div class="pool-layer l5">
+          <div class="pool-info">
+            <div class="pool-label">Phase 1 — 우리가 다룰 풀</div>
+            <div class="pool-sub">코어 큐레이션. 깊이 우선, 커버리지 욕심 X</div>
+          </div>
+          <div class="pool-num">30</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:20px; margin-top:24px; margin-bottom:18px; font-weight:700;">풀 출처 분류</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>출처</th>
+            <th>추정 규모</th>
+            <th>주된 Tier</th>
+            <th class="center">Phase 1 포함</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>data.go.kr</strong> (포털 표준)</td><td>~25,000</td><td>T1 · T2</td><td class="center"><span class="badge-yes">○</span> 80%</td></tr>
+          <tr><td><strong>부처 자체 포털</strong> (apihub.kma, mfds, KOSIS)</td><td>~1,500</td><td>T2</td><td class="center"><span class="badge-yes">○</span> 일부</td></tr>
+          <tr><td><strong>지자체 포털</strong> (서울 열린데이터광장 등)</td><td>~3,000</td><td>T1 · T2</td><td class="center"><span class="badge-partial">△</span> 다음 단계</td></tr>
+          <tr><td><strong>공기업</strong> (한전 · 도로공사 · 코레일)</td><td>~500</td><td>T2 · T3</td><td class="center"><span class="badge-partial">△</span> 다음 단계</td></tr>
+          <tr><td><strong>금융</strong> (DART · 전자공시 · 금감원)</td><td>~200</td><td>T2 · T3</td><td class="center"><span class="badge-yes">○</span> 핵심 1~2개</td></tr>
+          <tr><td><strong>인증 필요</strong> (홈택스 · 정부24)</td><td>~100</td><td>T4</td><td class="center"><span class="badge-no">✗</span> 제외</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Core 30 -->
+  <section id="core30" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">Phase 1 큐레이션 — 코어 30개</div>
+      <h2>실제로 변환할 30개 API</h2>
+      <p class="lede">
+        무작위 30개가 아닌, 4개 기준으로 선정한 큐레이션 리스트입니다.
+        <strong style="color:var(--ink);">(1) 활용신청 누적 상위, (2) 다양한 Tier 분포, (3) 다양한 카테고리, (4) 다양한 함정 패턴.</strong>
+        이 30개 안에 함정 패턴이 거의 다 포함되어 있어, 변환에 성공하면 어댑터의 일반성이 증명됩니다.
+      </p>
+
+      <div class="core-summary">
+        <div class="core-summary-box">
+          <div class="core-summary-num">T1 · 5개</div>
+          <div class="core-summary-label">자동 변환 검증</div>
+        </div>
+        <div class="core-summary-box">
+          <div class="core-summary-num">T2 · 23개</div>
+          <div class="core-summary-label">어댑터 일반성 증명</div>
+        </div>
+        <div class="core-summary-box">
+          <div class="core-summary-num">T3 · 2개</div>
+          <div class="core-summary-label">확장 가능성 시연</div>
+        </div>
+      </div>
+
+      <div class="core-cat">
+        <h3>환경 · 기상 (5)</h3>
+        <table class="core-table">
+          <thead><tr><th>#</th><th>API</th><th>Tier</th><th>함정 패턴</th></tr></thead>
+          <tbody>
+            <tr><td class="idx">01</td><td>기상청 단기예보</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">nx/ny 격자좌표, XML default</td></tr>
+            <tr><td class="idx">02</td><td>기상청 중기예보</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">지역코드 별표</td></tr>
+            <tr><td class="idx">03</td><td>에어코리아 측정정보</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">측정소명 한글 입력</td></tr>
+            <tr><td class="idx">04</td><td>에어코리아 측정소 위치</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">tmX/tmY 좌표계</td></tr>
+            <tr><td class="idx">05</td><td>기상청 황사예보</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML, 시간 단위 제약</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="core-cat">
+        <h3>국토 · 부동산 (5)</h3>
+        <table class="core-table">
+          <thead><tr><th>#</th><th>API</th><th>Tier</th><th>함정 패턴</th></tr></thead>
+          <tbody>
+            <tr><td class="idx">06</td><td>국토부 아파트 매매 실거래가</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">LAWD_CD(법정동 앞 5자리), XML only</td></tr>
+            <tr><td class="idx">07</td><td>국토부 아파트 전월세 실거래가</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">LAWD_CD</td></tr>
+            <tr><td class="idx">08</td><td>국토부 단독·다가구 실거래가</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">LAWD_CD</td></tr>
+            <tr><td class="idx">09</td><td>행안부 도로명주소 검색</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap"><strong>confmKey</strong> (별도 키 이름)</td></tr>
+            <tr><td class="idx">10</td><td>국토부 건축물대장</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">sigunguCd+bjdongCd 조합</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="core-cat">
+        <h3>보건 · 의료 (5)</h3>
+        <table class="core-table">
+          <thead><tr><th>#</th><th>API</th><th>Tier</th><th>함정 패턴</th></tr></thead>
+          <tbody>
+            <tr><td class="idx">11</td><td>식약처 의약품개요 (e약은요)</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">efcyQesitm 등 한글 약어 필드</td></tr>
+            <tr><td class="idx">12</td><td>식약처 의약품 부작용</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">한글 필드, XML</td></tr>
+            <tr><td class="idx">13</td><td>응급실 정보 (NEMC)</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML, 지역코드</td></tr>
+            <tr><td class="idx">14</td><td>약국 위치</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML, 페이지네이션 제약</td></tr>
+            <tr><td class="idx">15</td><td>식약처 식품안전</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="core-cat">
+        <h3>재정 · 금융 (5)</h3>
+        <table class="core-table">
+          <thead><tr><th>#</th><th>API</th><th>Tier</th><th>함정 패턴</th></tr></thead>
+          <tbody>
+            <tr><td class="idx">16</td><td>국세청 사업자상태 진위확인</td><td class="tier"><span class="tier-pill t1">T1</span></td><td class="trap"><strong>POST + JSON body</strong> (이례적)</td></tr>
+            <tr><td class="idx">17</td><td>국세청 사업자등록정보</td><td class="tier"><span class="tier-pill t1">T1</span></td><td class="trap">JSON, 인증 위치 변형</td></tr>
+            <tr><td class="idx">18</td><td>DART 기업공시</td><td class="tier"><span class="tier-pill t3">T3</span></td><td class="trap">자체 인증, 복잡한 응답 구조</td></tr>
+            <tr><td class="idx">19</td><td>한국은행 경제통계 (ECOS)</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">통계코드 체계</td></tr>
+            <tr><td class="idx">20</td><td>금감원 통합공시</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML, 보고서 종류 다수</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="core-cat">
+        <h3>문화 · 관광 (5)</h3>
+        <table class="core-table">
+          <thead><tr><th>#</th><th>API</th><th>Tier</th><th>함정 패턴</th></tr></thead>
+          <tbody>
+            <tr><td class="idx">21</td><td>한국관광공사 TourAPI</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">영역 코드 + 카테고리</td></tr>
+            <tr><td class="idx">22</td><td>GoCamping (캠핑정보)</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML</td></tr>
+            <tr><td class="idx">23</td><td>문화재청 문화재 검색</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">한글 검색어 인코딩</td></tr>
+            <tr><td class="idx">24</td><td>영화진흥위 박스오피스</td><td class="tier"><span class="tier-pill t1">T1</span></td><td class="trap">JSON, <strong>apiKey</strong> (이름 다름)</td></tr>
+            <tr><td class="idx">25</td><td>도서관정보나루 도서검색</td><td class="tier"><span class="tier-pill t1">T1</span></td><td class="trap">JSON</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="core-cat">
+        <h3>통계 · 법령 · 기타 (5)</h3>
+        <table class="core-table">
+          <thead><tr><th>#</th><th>API</th><th>Tier</th><th>함정 패턴</th></tr></thead>
+          <tbody>
+            <tr><td class="idx">26</td><td>KOSIS 통계자료</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap"><strong>apiKey</strong>, objL1~L8 다단 분류</td></tr>
+            <tr><td class="idx">27</td><td>통계청 사업체기초조사</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">분류코드 사전 조회 필요</td></tr>
+            <tr><td class="idx">28</td><td>법령정보센터</td><td class="tier"><span class="tier-pill t2">T2</span></td><td class="trap">XML, 법령 종류 다수</td></tr>
+            <tr><td class="idx">29</td><td>공공데이터포털 카탈로그 API</td><td class="tier"><span class="tier-pill t1">T1</span></td><td class="trap">JSON (메타 API — 다른 API 발견용)</td></tr>
+            <tr><td class="idx">30</td><td>한국교통안전공단 자동차등록</td><td class="tier"><span class="tier-pill t3">T3</span></td><td class="trap">bulk 데이터 + 인증</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="lede" style="margin-top: 32px; margin-bottom: 0; font-size: 15px;">
+        <strong style="color:var(--ink);">왜 이 30개인가.</strong>
+        이 안에 함정 패턴이 거의 다 포함됩니다 — XML default, 격자좌표, 법정동코드, confmKey,
+        apiKey, POST+JSON body, 한글 필드명, 다단 분류, bulk 응답 등.
+        이 30개 어댑터를 일반화하면 Phase 2의 200개로 확장하는 비용이 급격히 떨어집니다.
+      </p>
+    </div>
+  </section>
+
+  <!-- Phases -->
+  <section id="phases" class="dark">
+    <div class="container">
+      <div class="eyebrow">확장 로드맵 — 5 Phases</div>
+      <h2>30 → 9,000개로 가는 길</h2>
+      <p class="lede">
+        각 Phase = 단순히 "더 많은 API"가 아니라 "새로운 문제를 풀어야 가능한 다음 단계".
+        Phase 1~5 각각이 다른 기술·운영·제품·데이터·비즈니스 챌린지를 가집니다.
+      </p>
+
+      <div class="phase-stack">
+        <div class="phase-card">
+          <div class="phase-tag phase-1">PHASE 1</div>
+          <div class="phase-target"><div class="phase-num">30</div><div class="phase-period">12주 · 대회</div></div>
+          <div class="phase-content">
+            <h3>Bootstrap — 변환 + 검색 인프라 PoC</h3>
+            <div class="phase-problems">
+              <div class="problem-axis"><strong>Tech</strong>PDF/HWP → OAS 추출 정확도. XML 정규화. MCP tool 자동 생성.</div>
+              <div class="problem-axis"><strong>Data</strong>코어 30개 큐레이션. 카나리아 검증.</div>
+              <div class="problem-axis"><strong>Ops</strong>검수 UI. 운영자 수동 작업 효율.</div>
+              <div class="problem-axis"><strong>Product</strong>작은 풀에서 검색 정확도. Try-it UX.</div>
+              <div class="problem-axis"><strong>Business</strong>해당 없음. 대회 산출물.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phase-card">
+          <div class="phase-tag phase-2">PHASE 2</div>
+          <div class="phase-target"><div class="phase-num">200</div><div class="phase-period">+ 6개월</div></div>
+          <div class="phase-content">
+            <h3>Scale — 자동화율 / 안정성 확보</h3>
+            <div class="phase-problems">
+              <div class="problem-axis"><strong>Tech</strong>자동화율 70% → 90%. 응답 어댑터 커버리지 확대. 일부 T3 패턴화.</div>
+              <div class="problem-axis"><strong>Data</strong>200개 — 16 카테고리 균형. 활용도 상위 80% 풀 흡수.</div>
+              <div class="problem-axis"><strong>Ops</strong>Drift 자동 감지 시작. 카나리아 매일 자동 실행.</div>
+              <div class="problem-axis"><strong>Product</strong>필터링·정렬 강화. 도구 추천. 사용자 즐겨찾기.</div>
+              <div class="problem-axis"><strong>Business</strong>Key Pool 도입. 무료 quota 정책 설계.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phase-card">
+          <div class="phase-tag phase-3">PHASE 3</div>
+          <div class="phase-target"><div class="phase-num">1,000</div><div class="phase-period">+ 1년</div></div>
+          <div class="phase-content">
+            <h3>Federate — 지자체·공기업 흡수</h3>
+            <div class="phase-problems">
+              <div class="problem-axis"><strong>Tech</strong>지자체 포털 다양성. 신규 인증 방식 패턴 라이브러리화.</div>
+              <div class="problem-axis"><strong>Data</strong>1000개 — 중복·유사 도구 처리. 신규 API 자동 발견(크롤링).</div>
+              <div class="problem-axis"><strong>Ops</strong>SLA 정의. 응답시간 모니터링. 알림 시스템.</div>
+              <div class="problem-axis"><strong>Product</strong>도메인 트리 구조. 의미 검색 정확도 ↑. 다국어 색인.</div>
+              <div class="problem-axis"><strong>Business</strong>Pro tier 출시. 결제 시스템. 첫 유료 고객.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phase-card">
+          <div class="phase-tag phase-4">PHASE 4</div>
+          <div class="phase-target"><div class="phase-num">5,000</div><div class="phase-period">+ 2년</div></div>
+          <div class="phase-content">
+            <h3>Compose — 상위 기능 / B2B</h3>
+            <div class="phase-problems">
+              <div class="problem-axis"><strong>Tech</strong>T3 핸들러 라이브러리. SOAP 어댑터. 파일 응답 처리. Composite tool.</div>
+              <div class="problem-axis"><strong>Data</strong>5000개. 중복 제거 본격. 다국어(영문 API 포털).</div>
+              <div class="problem-axis"><strong>Ops</strong>가용성 모니터링. 멀티리전 검토. SLA 99%.</div>
+              <div class="problem-axis"><strong>Product</strong>Tool Router · Resolver · Composite 본격 도입. Workflow 베타.</div>
+              <div class="problem-axis"><strong>Business</strong>B2B 계약. 정부기관 파트너십. 매출 본격.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phase-card">
+          <div class="phase-tag phase-5">PHASE 5</div>
+          <div class="phase-target"><div class="phase-num">9,000+</div><div class="phase-period">+ 3년~</div></div>
+          <div class="phase-content">
+            <h3>Standardize — 거버넌스 / 표준화</h3>
+            <div class="phase-problems">
+              <div class="problem-axis"><strong>Tech</strong>T4 일부 흡수 (본인 토큰 주입). MCP 표준 영향. 보안 감사.</div>
+              <div class="problem-axis"><strong>Data</strong>가용 풀 거의 흡수. 폐기 API 자동 회수. 메타데이터 표준 제안.</div>
+              <div class="problem-axis"><strong>Ops</strong>HA 다중화. SLA 99.9%. 감사 로그 컴플라이언스.</div>
+              <div class="problem-axis"><strong>Product</strong>Workflow Composer 정식. 공공 데이터 위 RPA layer.</div>
+              <div class="problem-axis"><strong>Business</strong>정부 표준화 거버넌스 참여. 공공 인프라 포지셔닝.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div>Protocol K · 2026 National AI Competition</div>
+      <div>Status · Planning (Phase 1)</div>
+    </div>
+  </footer>
+
+</body>
+</html>
