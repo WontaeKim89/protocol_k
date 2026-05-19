@@ -242,10 +242,10 @@
         <li><a href="#pipeline-split">Pipeline 분리</a></li>
         <li><a href="#structure">구조</a></li>
         <li><a href="#backend">Backend</a></li>
-        <li><a href="#frontend">Frontend</a></li>
+        <li><a href="#frontend-note">Frontend</a></li>
         <li><a href="#data">Data</a></li>
+        <li><a href="#infra">Infra</a></li>
         <li><a href="#deploy">배포</a></li>
-        <li><a href="#milestone">마일스톤</a></li>
         <li><a href="#tldr">TL;DR</a></li>
         <li><a href="../../index.html" class="pill">기획서</a></li>
         <li><a href="./conventions.html" class="pill">컨벤션</a></li>
@@ -271,10 +271,11 @@
       <div class="summary-box">
         <div class="tag">TL;DR</div>
         <p>
-          메인 레포는 <strong>실시간 서비스</strong>(backend FastAPI + frontend React+Vite + 변환된 OAS 저장소)를 묶고,
+          메인 레포는 <strong>실시간 서비스</strong>(backend FastAPI + 변환된 OAS 저장소 + frontend 영역)를 묶고,
           <strong>주기적 batch인 Conversion Pipeline은 별도 레포(<code>protocol_k_pipeline</code>)</strong>로 분리한다.
-          Python 패키지는 <strong>uv</strong>, 배포는 <strong>GitHub Actions</strong> 기반.
-          pipeline은 변환 결과를 메인 레포의 <code>tools/oas/</code> 에 PR로 기여한다.
+          Python 패키지는 <strong>uv</strong>, 인프라는 <strong>Terraform</strong>으로 구성하고
+          클라우드는 <strong>Azure 기준</strong>(팀원 의견에 따라 변경 가능)으로 작성했다.
+          frontend 기술 스택은 담당자(조현재) 검토 영역이라 본 제안서에서는 다루지 않는다.
         </p>
       </div>
     </div>
@@ -428,13 +429,8 @@
 │       ├── catalog/         <span class="comment"># 검색·메타데이터 API</span>
 │       ├── gateway/         <span class="comment"># 백엔드 API 프록시·정규화</span>
 │       └── shared/
-├── frontend/                <span class="comment"># React + Vite: Catalog UI</span>
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── src/
-│       ├── pages/           <span class="comment"># 카탈로그 · 도구 상세 · Try-it</span>
-│       ├── components/
-│       └── lib/             <span class="comment"># openapi-typescript 자동 생성</span>
+├── frontend/                <span class="comment"># 담당자(조현재) 결정 — 본 제안서에서 다루지 않음</span>
+│   └── ...                  <span class="comment"># 구조 · 스택 미정</span>
 ├── tools/
 │   └── oas/                 <span class="comment"># pipeline 산출물 (OAS YAML) — PR로 누적</span>
 │       ├── weather.short_forecast.yaml
@@ -560,113 +556,157 @@ dependencies = [
     </div>
   </section>
 
-  <!-- Frontend -->
-  <section id="frontend">
+  <!-- Frontend (담당자 영역) -->
+  <section id="frontend-note">
     <div class="container">
-      <div class="eyebrow">Frontend</div>
-      <h2>React + Vite</h2>
-      <p class="lede">정적 빌드 = 어디든 배포 가능. Vite 빌드 속도 충분. openapi-typescript 로 backend 스키마 자동 추적.</p>
-
-      <div class="stack-grid">
-        <div class="stack-card primary">
-          <div class="stack-tag">FRAMEWORK</div>
-          <h3>선택 이유</h3>
-          <ul class="stack-list">
-            <li><span class="name">정적 빌드</span><span class="desc">— GitHub Pages·Vercel·Azure 어디든 OK</span></li>
-            <li><span class="name">Vite 속도</span><span class="desc">— 카탈로그 UI 규모에 충분, dev 서버 즉시</span></li>
-            <li><span class="name">OpenAPI 클라이언트</span><span class="desc">— openapi-typescript 자동 생성</span></li>
-            <li><span class="name">디자인 톤 일관</span><span class="desc">— index.html을 컴포넌트화 쉬움</span></li>
-          </ul>
-        </div>
-
-        <div class="stack-card secondary">
-          <div class="stack-tag">PACKAGE MANAGER</div>
-          <h3>pnpm</h3>
-          <p class="muted" style="font-size: 14px;">
-            디스크 효율 + 모노레포 친화. workspace 지원 깔끔.
-            bun도 가능하지만 호환성 이슈 회피 위해 pnpm 우선.
-          </p>
-        </div>
-      </div>
-
-      <h3>핵심 의존성 (frontend/package.json)</h3>
-      <pre class="code-block">{
-  "name": "protocol-k-frontend",
-  "type": "module",
-  "dependencies": {
-    "react": "^19",
-    "react-dom": "^19",
-    "react-router-dom": "^7"
-  },
-  "devDependencies": {
-    "vite": "^7",
-    "typescript": "^5.6",
-    "@vitejs/plugin-react": "^5",
-    "openapi-typescript": "^7"
-  }
-}</pre>
-
-      <p class="muted">
-        대안: Next.js (SSR 필요 시 강력하나 우리는 정적 SPA로 충분),
-        SvelteKit (가능하나 React 생태계 우위).
+      <div class="eyebrow">Frontend · 담당자 영역</div>
+      <h2>본 제안서에서 다루지 않음</h2>
+      <p class="lede">
+        프론트엔드 기술 스택·구조·디자인 시스템은 <strong style="color:var(--ink);">담당자(조현재) 검토 영역</strong>으로 본 제안서에서는 다루지 않습니다.
+        backend 가 제공하는 OpenAPI 명세를 클라이언트가 그대로 소비할 수 있도록
+        <strong>OAS 3.1 표준 형식</strong>으로 노출한다는 점만 명시합니다.
       </p>
+
+      <div class="callout" style="background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 6px; padding: 20px 24px;">
+        <strong style="color: var(--accent);">backend 접점 가이드</strong>
+        <ul style="list-style: none; padding-left: 0; margin: 12px 0 0;">
+          <li style="padding: 4px 0;">→ <strong>API 스펙</strong> — backend의 <code>/openapi.json</code> 자동 생성. 클라이언트는 이것을 소비.</li>
+          <li style="padding: 4px 0;">→ <strong>인증</strong> — Bearer token (사용자 키). CORS 정책은 backend가 설정.</li>
+          <li style="padding: 4px 0;">→ <strong>WebSocket / SSE</strong> — 필요 시 MCP 스트리밍 채널 별도 제공 (Phase 2+).</li>
+          <li style="padding: 4px 0;">→ <strong>배포 타깃</strong> — Azure Static Web Apps 등 (담당자 결정).</li>
+        </ul>
+      </div>
     </div>
   </section>
 
   <!-- Data -->
   <section id="data" style="background: var(--surface);">
     <div class="container">
-      <div class="eyebrow">Data Layer</div>
-      <h2>PostgreSQL + pgvector</h2>
-      <p class="lede">단일 Postgres로 메타데이터·임베딩 모두 처리. 별도 벡터 DB 불필요.</p>
+      <div class="eyebrow">Data Layer · Azure 기준</div>
+      <h2>Azure PostgreSQL + Redis + AI Search</h2>
+      <p class="lede">
+        역할별로 3종 저장소를 분리. <strong style="color:var(--ink);">Azure 매니지드 서비스 위주로 구성</strong>하여
+        운영 부담을 줄이고 백업·HA·모니터링을 Azure 표준에 위임합니다.
+        <em>팀원 의견 조율 후 변경 가능</em>.
+      </p>
 
       <table class="data-table">
         <thead>
           <tr><th>용도</th><th>저장소</th><th>비고</th></tr>
         </thead>
         <tbody>
-          <tr><td>Tool 메타데이터</td><td>PostgreSQL</td><td>이름·설명·스키마·예시</td></tr>
-          <tr><td>도구 description 임베딩</td><td>pgvector</td><td>Postgres 확장. ANN 검색</td></tr>
-          <tr><td>변환된 OAS 원본</td><td>git (<code>pipeline/output/*.yaml</code>)</td><td>캐싱 + diff 추적</td></tr>
-          <tr><td>사용자 키 · 호출 로그</td><td>PostgreSQL</td><td>감사 로그용</td></tr>
+          <tr>
+            <td>Tool 메타데이터 · 사용자 키 · 호출 로그</td>
+            <td><strong>Azure Database for PostgreSQL</strong> (Flexible Server)</td>
+            <td>관계형 데이터의 정본 저장소</td>
+          </tr>
+          <tr>
+            <td>캐시 · 세션 · 임시 데이터 · quota counter</td>
+            <td><strong>Azure Cache for Redis</strong></td>
+            <td>정적 응답 캐시, 임베딩 결과 캐시, rate-limit</td>
+          </tr>
+          <tr>
+            <td>도구 description 임베딩 · 의미 검색</td>
+            <td><strong>Azure AI Search</strong> (vector index)</td>
+            <td>Azure 의 vector DB. ANN 검색 + 키워드 hybrid 검색 한 번에</td>
+          </tr>
+          <tr>
+            <td>변환된 OAS 원본</td>
+            <td>git (<code>tools/oas/*.yaml</code>)</td>
+            <td>캐싱 + diff 추적 + PR 검수 흐름</td>
+          </tr>
         </tbody>
       </table>
 
-      <p>
-        Phase 1 (100개 도구) 수준은 pgvector로 충분. Phase 4+ 에서 별도 벡터 DB 분리 검토.
+      <div class="callout" style="background: var(--warn-soft, #fbe9df); border: 1px solid var(--warn); border-radius: 6px; padding: 20px 24px; margin-top: 16px;">
+        <strong style="color: var(--warn);">의견 조율 포인트</strong>
+        <ul style="list-style: none; padding-left: 0; margin: 12px 0 0;">
+          <li style="padding: 4px 0;">→ AI Search 대신 <strong>pgvector</strong> 만 사용하는 안도 가능 (Phase 1 100개 규모는 충분).</li>
+          <li style="padding: 4px 0;">→ Redis 미도입 → PostgreSQL 자체 캐시 + 애플리케이션 메모리 캐시로 시작도 가능.</li>
+          <li style="padding: 4px 0;">→ AI Search 비용·러닝 커브 vs Postgres 단일화의 단순함 — 팀 합의 필요.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Infrastructure -->
+  <section id="infra">
+    <div class="container">
+      <div class="eyebrow">Infrastructure as Code</div>
+      <h2>Terraform 으로 일원화</h2>
+      <p class="lede">
+        모든 클라우드 리소스(Container Apps · PostgreSQL · Redis · AI Search · Key Vault · Log Analytics)는
+        <strong style="color:var(--ink);">Terraform</strong> 으로 정의·관리합니다.
+        포털 클릭으로 만들지 않고, IaC 가 single source of truth.
       </p>
+
+      <h3>구조 (예시)</h3>
+      <pre class="code-block">infra/terraform/
+├── envs/
+│   ├── dev/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── backend.tf      <span class="comment"># tfstate = Azure Blob</span>
+│   └── prod/
+│       └── ...
+├── modules/
+│   ├── container_apps/     <span class="comment"># backend 호스팅</span>
+│   ├── postgres/           <span class="comment"># Azure DB for PostgreSQL Flexible</span>
+│   ├── redis/              <span class="comment"># Azure Cache for Redis</span>
+│   ├── ai_search/          <span class="comment"># Azure AI Search (vector)</span>
+│   ├── key_vault/          <span class="comment"># secret · DB 패스워드</span>
+│   ├── log_analytics/      <span class="comment"># 로그 · 메트릭</span>
+│   └── network/            <span class="comment"># VNet · private endpoint</span>
+└── README.md</pre>
+
+      <h3>핵심 원칙</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 8px 0;">→ <strong>State backend = Azure Blob Storage</strong>. local state 금지. 잠금(state lock)으로 동시 apply 충돌 방지.</li>
+        <li style="padding: 8px 0;">→ <strong>환경 분리</strong> = <code>envs/dev</code>, <code>envs/prod</code>. variable 로 리소스 사이즈·tier 차등.</li>
+        <li style="padding: 8px 0;">→ <strong>Secret 관리</strong> = Azure Key Vault. Terraform 은 KV 참조만, 실제 secret 은 KV 에서 회전.</li>
+        <li style="padding: 8px 0;">→ <strong>GitHub Actions OIDC</strong> 로 Azure 인증. Service Principal client_secret 을 GitHub Secret 에 박지 않음.</li>
+        <li style="padding: 8px 0;">→ <strong>CI 검증</strong>: PR 단계에서 <code>terraform plan</code> 자동, main 머지 시 <code>apply</code>. Drift detection 주기 실행.</li>
+      </ul>
     </div>
   </section>
 
   <!-- Deploy -->
-  <section id="deploy">
+  <section id="deploy" style="background: var(--accent-soft);">
     <div class="container">
-      <div class="eyebrow">Deployment</div>
-      <h2>GitHub 중심 배포</h2>
-      <p class="lede">PR 머지 → GitHub Actions → 컴포넌트별 배포 타겟으로 자동 분기.</p>
+      <div class="eyebrow">Deployment · Azure 기준</div>
+      <h2>GitHub Actions → Azure</h2>
+      <p class="lede">
+        클라우드는 <strong style="color:var(--ink);">Azure 기준</strong>으로 작성했습니다.
+        담당자가 Azure 환경에 익숙해 운영 비용·학습 곡선이 가장 낮다는 판단이지만,
+        <em>팀원 의견에 따라 AWS · GCP · Cloudflare 등으로 변경 가능</em>합니다.
+      </p>
 
       <h3>배포 흐름</h3>
       <div class="deploy-flow">PR 머지 (main / dev)
    │
    ▼
-GitHub Actions 실행
+GitHub Actions 실행 (OIDC → Azure 인증)
    │
-   ├── backend  ─→  Docker build  ─→  GHCR push  ─→  Azure Container Apps
+   ├── infra    ─→  terraform plan / apply
    │
-   ├── frontend ─→  Vite build    ─→  GitHub Pages 정적 배포
+   ├── backend  ─→  Docker build  ─→  GHCR push  ─→  Azure Container Apps revision 업데이트
    │
-   └── pipeline ─→  CLI 패키지 빌드 (release tag 시)</div>
+   └── frontend ─→  [담당자 결정]  (별도 배포 파이프라인)
+                    ※ Pipeline (변환 batch) 은 별도 레포 protocol_k_pipeline 에서 자체 배포</div>
 
-      <h3>배포 타겟</h3>
+      <h3>배포 타깃 (Azure 기본) · 변경 가능</h3>
       <table class="data-table">
         <thead>
-          <tr><th>컴포넌트</th><th>호스팅</th><th>이유</th></tr>
+          <tr><th>컴포넌트</th><th>Azure 서비스 (기본안)</th><th>변경 가능 대안</th></tr>
         </thead>
         <tbody>
-          <tr><td>Backend</td><td><strong>Azure Container Apps</strong></td><td>사용자 Azure 경험. Private 환경 대응</td></tr>
-          <tr><td>Frontend</td><td><strong>GitHub Pages</strong></td><td>정적 사이트, 무료, 별도 인프라 X</td></tr>
-          <tr><td>Pipeline</td><td>CLI 배포 (PyPI / GHCR)</td><td>운영자 로컬에서 실행</td></tr>
-          <tr><td>DB</td><td>Azure Database for PostgreSQL</td><td>Container Apps와 동일 리전</td></tr>
+          <tr><td>Backend</td><td><strong>Azure Container Apps</strong></td><td>AWS ECS Fargate / GCP Cloud Run / Fly.io</td></tr>
+          <tr><td>DB (RDB)</td><td>Azure Database for PostgreSQL</td><td>AWS RDS / GCP Cloud SQL</td></tr>
+          <tr><td>Cache</td><td>Azure Cache for Redis</td><td>AWS ElastiCache / GCP Memorystore</td></tr>
+          <tr><td>Vector</td><td>Azure AI Search</td><td>pgvector / Pinecone / Qdrant</td></tr>
+          <tr><td>Secret</td><td>Azure Key Vault</td><td>AWS Secrets Manager / GCP Secret Manager</td></tr>
+          <tr><td>로그 · 메트릭</td><td>Log Analytics + App Insights</td><td>Datadog / Grafana Cloud</td></tr>
+          <tr><td>Frontend</td><td>[담당자 결정]</td><td>Azure Static Web Apps / Vercel / GH Pages</td></tr>
         </tbody>
       </table>
 
@@ -674,38 +714,17 @@ GitHub Actions 실행
       <ul style="list-style: none; padding-left: 0;">
         <li style="padding: 6px 0;">→ <code>dev</code> 브랜치 → Dev 환경 (자동 배포)</li>
         <li style="padding: 6px 0;">→ <code>main</code> 브랜치 → Prod 환경 (수동 승인 + tag 기반)</li>
-        <li style="padding: 6px 0;">→ 워크플로: PR은 <code>dev</code> 로, 안정화 후 <code>main</code> 으로 머지</li>
+        <li style="padding: 6px 0;">→ 워크플로: PR 은 <code>dev</code> 로, 안정화 후 <code>main</code> 으로 머지</li>
       </ul>
 
-      <p class="muted" style="margin-top: 16px;">
-        대안: Vercel (frontend, deploy-to-vercel 스킬 있음 — 프리뷰 배포 필요 시),
-        Fly.io / Railway (backend Phase 1 PoC 단계에 적합).
-      </p>
-    </div>
-  </section>
-
-  <!-- Milestone -->
-  <section id="milestone" style="background: var(--accent-soft);">
-    <div class="container">
-      <div class="eyebrow">12주 마일스톤</div>
-      <h2>90일 진행 흐름</h2>
-      <p class="lede">M1 우선, M2·M3 병렬. M4(30개 큐레이션)는 M1 산출물 누적과 함께 진행.</p>
-
-      <table class="milestone-table">
-        <thead>
-          <tr><th>주차</th><th>산출물</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="week">W1~2</td><td>모노레포 스캐폴딩 (backend / frontend / pipeline 골격) + 첫 API(T1) 변환 PoC</td></tr>
-          <tr><td class="week">W3~4</td><td>PDF/HWP → OAS LLM 추출기 PoC (핵심 위험 검증)</td></tr>
-          <tr><td class="week">W5~6</td><td>MCP Gateway 기본 (FastMCP) + 5개 API 변환 완료</td></tr>
-          <tr><td class="week">W7~8</td><td>Catalog API + 의미 검색 (pgvector)</td></tr>
-          <tr><td class="week">W9~10</td><td>Catalog UI (React+Vite) + Try-it 인터랙티브</td></tr>
-          <tr><td class="week">W11~12</td><td>30개 큐레이션 완료 + 데모 시나리오 + KPI 측정 + 발표 자료</td></tr>
-        </tbody>
-      </table>
-
-      <p class="muted" style="margin-top: 16px;">자세한 일정은 <a href="../../index.html#schedule" style="color: var(--accent);">기획 페이지 Schedule 섹션</a> 참조.</p>
+      <div class="callout" style="background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; padding: 20px 24px; margin-top: 24px;">
+        <strong style="color: var(--accent);">마일스톤 계획</strong>
+        <p style="margin: 8px 0 0; font-size: 14px;">
+          본 제안서는 <strong>기술 스택 결정</strong>에 집중하며, 12주 진행 마일스톤은 본문에서 다루지 않습니다.
+          단, 별도의 <strong>마일스톤 계획 문서</strong>가 필요하며 (제안 — 기획 페이지 <code>index.html</code> 의 Schedule 섹션 또는
+          <code>docs/proposal/milestone.md</code>) 팀 합의 후 작성합니다.
+        </p>
+      </div>
     </div>
   </section>
 
@@ -718,15 +737,18 @@ GitHub Actions 실행
       <div class="tldr-box">
         <h3>TL;DR</h3>
         <table class="tldr-table">
-          <tr><td>Repo 전략</td><td><strong>메인 모노레포</strong> (backend + frontend + OAS 저장소) · <strong>Pipeline 별도 레포</strong> (<code>protocol_k_pipeline</code>)</td></tr>
+          <tr><td>Repo 전략</td><td><strong>메인 모노레포</strong> (backend + OAS 저장소 + frontend 영역) · <strong>Pipeline 별도 레포</strong> (<code>protocol_k_pipeline</code>)</td></tr>
           <tr><td>Backend 프레임워크</td><td><strong>FastAPI</strong> + FastMCP</td></tr>
-          <tr><td>Backend 패키지</td><td><strong>uv</strong> (워크스페이스 분리)</td></tr>
-          <tr><td>Frontend</td><td><strong>React + Vite</strong> + pnpm</td></tr>
-          <tr><td>DB</td><td><strong>PostgreSQL + pgvector</strong></td></tr>
-          <tr><td>배포</td><td><strong>GitHub Actions</strong> → Azure Container Apps / GitHub Pages</td></tr>
+          <tr><td>Backend 패키지</td><td><strong>uv</strong></td></tr>
+          <tr><td>Frontend</td><td><em>담당자(조현재) 검토 영역 — 본 제안서에서 다루지 않음</em></td></tr>
+          <tr><td>Cloud</td><td><strong>Azure 기준</strong> (팀원 의견에 따라 변경 가능)</td></tr>
+          <tr><td>DB · 데이터</td><td><strong>Azure DB for PostgreSQL + Azure Cache for Redis + Azure AI Search</strong> (팀원 의견 조율 필요)</td></tr>
+          <tr><td>Infrastructure</td><td><strong>Terraform</strong> (state = Azure Blob, OIDC 인증)</td></tr>
+          <tr><td>배포</td><td><strong>GitHub Actions</strong> → Azure Container Apps</td></tr>
           <tr><td>Base 브랜치</td><td><code>dev</code> (개발) → <code>main</code> (배포)</td></tr>
-          <tr><td>코드 품질</td><td>ruff + mypy / eslint + prettier</td></tr>
+          <tr><td>코드 품질</td><td>ruff + mypy (backend) / 프론트 도구 — 담당자 결정</td></tr>
           <tr><td>워크플로</td><td>이슈 퍼스트 (<a href="./conventions.html" style="color: var(--accent);">conventions.html</a> 참조)</td></tr>
+          <tr><td>마일스톤</td><td>별도 문서로 분리 (팀 합의 후 작성)</td></tr>
         </table>
       </div>
 

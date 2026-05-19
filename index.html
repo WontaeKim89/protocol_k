@@ -491,6 +491,47 @@
     .challenge-card .problem { font-weight: 600; color: var(--ink); display: block; margin-bottom: 4px; }
     .challenge-card .solution { color: var(--muted); font-size: 12.5px; }
 
+    /* Tier sample (before/after) */
+    .tier-sample {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin: 14px 0 22px;
+    }
+    .sample-box {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 18px;
+    }
+    .sample-box.before { border-left: 4px solid var(--warn); }
+    .sample-box.after { border-left: 4px solid var(--accent); }
+    .sample-box .ba-label {
+      font-size: 10.5px; letter-spacing: 0.15em;
+      text-transform: uppercase; font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .sample-box.before .ba-label { color: var(--warn); }
+    .sample-box.after .ba-label { color: var(--accent); }
+    .sample-box .ba-source { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; font-style: italic; }
+    .sample-box pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; background: var(--bg);
+      padding: 10px 12px; border-radius: 4px;
+      overflow-x: auto; white-space: pre;
+      line-height: 1.55; color: var(--ink);
+      margin: 0;
+    }
+    .sample-box pre .cmnt { color: var(--muted); }
+    .sample-box ol {
+      padding-left: 22px; font-size: 12.5px; line-height: 1.65;
+      margin: 0;
+    }
+    .sample-box ol li { padding: 3px 0; }
+    .sample-box ol li code {
+      font-size: 11px; background: var(--code-bg);
+      padding: 1px 4px; border-radius: 2px;
+    }
+    @media (max-width: 880px) {
+      .tier-sample { grid-template-columns: 1fr; }
+    }
+
     /* Core 30 */
     .core-cat {
       margin-bottom: 32px;
@@ -565,6 +606,7 @@
         <li><a href="#schedule">일정</a></li>
         <li><a href="#kpi">KPI</a></li>
         <li><a href="#pool">API Pool</a></li>
+        <li><a href="#automation">자동화 분류</a></li>
         <li><a href="#core30">코어 30</a></li>
         <li><a href="#phases">확장 단계</a></li>
         <li><a href="#llm">LLM 계획</a></li>
@@ -677,7 +719,6 @@
         <div>
           <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
           <p>OAS → MCP tool 자동 생성기. <code>serviceKey</code> 주입 외 추가 처리 거의 없음.</p>
-          <p class="meta-line">변환 비용 · 평균 30분/건</p>
         </div>
         <div><div class="feasibility">~10%</div><div class="feasibility-label">전체 비중</div></div>
       </div>
@@ -692,7 +733,6 @@
         <div>
           <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
           <p>LLM 기반 PDF/HWP 명세 추출 → OAS draft → 사람 검수 → 응답 정규화 어댑터 적용.</p>
-          <p class="meta-line">변환 비용 · 평균 2~4시간/건</p>
         </div>
         <div><div class="feasibility">~60%</div><div class="feasibility-label">전체 비중 · 메인 타겟</div></div>
       </div>
@@ -707,7 +747,6 @@
         <div>
           <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
           <p>API별 hand-written 핸들러. 단일 MCP tool 안에 다운로드·파싱·변환 캡슐화.</p>
-          <p class="meta-line">변환 비용 · 평균 1~2일/건</p>
         </div>
         <div><div class="feasibility">~20%</div><div class="feasibility-label">대표 사례 2건만</div></div>
       </div>
@@ -722,7 +761,6 @@
         <div>
           <p style="font-weight:600; color:var(--ink); margin-bottom:4px;">변환 방식</p>
           <p>대회 범위 제외. 추후 "사용자 본인 토큰 주입" 방식 검토.</p>
-          <p class="meta-line">변환 비용 · N/A</p>
         </div>
         <div><div class="feasibility">~10%</div><div class="feasibility-label">의도적 제외</div></div>
       </div>
@@ -745,6 +783,40 @@
           <div class="challenge-tag">TIER 1</div>
           <h3>표면적 쉬움 · 함정 5</h3>
           <div class="sub">REST + JSON + OAS가 있다고 끝이 아님.</div>
+
+          <div class="tier-sample">
+            <div class="sample-box before">
+              <div class="ba-label">현재 모습</div>
+              <div class="ba-source">예: 국세청 사업자상태 진위확인</div>
+<pre>POST https://api.odcloud.kr/api/nts-businessman/v1/status
+     ?serviceKey=ENCODED_KEY        <span class="cmnt"># query 인증</span>
+Content-Type: application/json
+
+{ "b_no": ["1234567890"] }          <span class="cmnt"># body JSON</span>
+
+<span class="cmnt"># 응답 (JSON)</span>
+{
+  "match_cnt": 1,
+  "data": [{
+    "b_no": "1234567890",
+    "b_stt": "계속사업자",          <span class="cmnt"># 한글 필드값</span>
+    "b_stt_cd": "01",
+    "tax_type": "부가가치세 일반과세자"
+  }]
+}</pre>
+            </div>
+            <div class="sample-box after">
+              <div class="ba-label">우리 해결</div>
+              <ol>
+                <li>OAS Spec 제공 → <strong>MCP tool 자동 wrapper</strong>로 1:1 변환</li>
+                <li>인증 위치 추상화 (query/header 어디든 우리 게이트웨이가 자동 주입)</li>
+                <li>도구명 표준화 = <code>business.verify_status</code> (충돌 방지)</li>
+                <li>한글 필드값(<code>b_stt</code>)은 그대로 두되 description에 영문 매핑 보강</li>
+                <li>에러 body 비표준 → 공통 에러 정규화 미들웨어로 처리</li>
+              </ol>
+            </div>
+          </div>
+
           <ol>
             <li>
               <span class="problem">OAS 품질 편차</span>
@@ -773,6 +845,50 @@
           <div class="challenge-tag">TIER 2 · 메인</div>
           <h3>어댑터 일반화 · 6대 도전</h3>
           <div class="sub">공공 API 70%가 여기. 해결되면 사실상 끝.</div>
+
+          <div class="tier-sample">
+            <div class="sample-box before">
+              <div class="ba-label">현재 모습</div>
+              <div class="ba-source">예: 기상청 단기예보</div>
+<pre>GET http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
+    /getVilageFcst
+    ?serviceKey=ENCODED_KEY    <span class="cmnt"># 인코딩 키/디코딩 키 함정</span>
+    &numOfRows=10&pageNo=1     <span class="cmnt"># 페이지네이션 비표준</span>
+    &base_date=20260518
+    &base_time=0500            <span class="cmnt"># 3시간 단위 정해진 값만</span>
+    &nx=60&ny=127              <span class="cmnt"># ← 격자좌표 (위경도 아님!)</span>
+    <span class="cmnt"># dataType 미지정 → XML default</span>
+
+명세: DOCX 활용가이드 (PDF · HWP 다수)
+
+<span class="cmnt"># 응답 (XML default)</span>
+&lt;response&gt;
+  &lt;header&gt;
+    &lt;resultCode&gt;00&lt;/resultCode&gt;
+    &lt;resultMsg&gt;NORMAL_SERVICE&lt;/resultMsg&gt;
+  &lt;/header&gt;
+  &lt;body&gt;&lt;items&gt;&lt;item&gt;
+    &lt;baseDate&gt;20260518&lt;/baseDate&gt;
+    &lt;category&gt;TMP&lt;/category&gt;
+    &lt;fcstValue&gt;22&lt;/fcstValue&gt;
+  &lt;/item&gt;&lt;/items&gt;&lt;/body&gt;
+&lt;/response&gt;</pre>
+            </div>
+            <div class="sample-box after">
+              <div class="ba-label">우리 해결 (단계별)</div>
+              <ol>
+                <li><strong>LLM이 DOCX/PDF 파싱</strong> → OpenAPI Spec 초안 자동 생성</li>
+                <li><strong>사람 검수 UI</strong>에서 함정 description 보강 — "<code>nx/ny</code> = 격자좌표, 위경도 아님"</li>
+                <li><strong>인증 어댑터</strong>: <code>serviceKey</code> 인코딩/디코딩 두 종 자동 처리</li>
+                <li><strong>응답 어댑터</strong>: XML → JSON 표준 스키마 (한글 필드명 → 영문 매핑)</li>
+                <li><strong>페이지네이션 정규화</strong>: <code>pageNo+numOfRows</code> → 표준 <code>cursor+limit</code></li>
+                <li><strong>에러 정규화</strong>: HTTP 200 + <code>resultCode</code> → 표준 HTTP status</li>
+                <li><strong>카나리아 호출</strong>로 동작 검증 후 등록</li>
+                <li>도구명 = <code>weather.short_forecast</code></li>
+              </ol>
+            </div>
+          </div>
+
           <ol>
             <li>
               <span class="problem">PDF/HWP → OAS 추출 정확도 ⚠</span>
@@ -805,6 +921,46 @@
           <div class="challenge-tag">TIER 3</div>
           <h3>커스텀 핸들러 · 5 도전</h3>
           <div class="sub">Phase 4부터 본격. 라이브러리화가 관건.</div>
+
+          <div class="tier-sample">
+            <div class="sample-box before">
+              <div class="ba-label">현재 모습</div>
+              <div class="ba-source">예: DART 공시 / SOAP 레거시 / bulk dump</div>
+<pre><span class="cmnt"># 케이스 A — DART 공시</span>
+1) 메타 호출 → 보고서 ID 획득 (JSON)
+2) 본문 다운로드 → ZIP 파일 응답
+3) ZIP 해제 → 내부 XBRL/XML 파싱
+4) 필요 필드 추출 → 후처리
+
+<span class="cmnt"># 케이스 B — SOAP 레거시</span>
+POST .../service.asmx HTTP/1.1
+Content-Type: text/xml; charset=utf-8
+SOAPAction: "..."
+
+&lt;soap:Envelope&gt;
+  &lt;soap:Body&gt;
+    &lt;GetData xmlns="..."&gt;...&lt;/GetData&gt;
+  &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;
+
+<span class="cmnt"># 케이스 C — HMAC 서명 / 세션 토큰</span>
+- 매 호출마다 timestamp + signature 생성
+- 토큰 만료 → 갱신 로직 필요</pre>
+            </div>
+            <div class="sample-box after">
+              <div class="ba-label">우리 해결</div>
+              <ol>
+                <li><strong>API별 hand-written 핸들러</strong> — 표준화 어려운 부분을 그 한 곳에 격리</li>
+                <li>단일 MCP tool 안에 <strong>전체 흐름 캡슐화</strong>:
+                  <code>다운로드 → 압축해제 → 파싱 → JSON 변환</code></li>
+                <li>SOAP은 WSDL → OAS 변환기로 자동화 시도, 안 되면 직접 핸들러</li>
+                <li>HMAC/세션 토큰은 <strong>백그라운드 갱신 job</strong> + 보안 저장소</li>
+                <li>응답 크기 큰 경우 <strong>streaming/페이징/캐싱</strong> 정책</li>
+                <li>패턴 반복되면 <strong>라이브러리화</strong> (Phase 4+) → 다음 T3 API는 더 빨라짐</li>
+              </ol>
+            </div>
+          </div>
+
           <ol>
             <li>
               <span class="problem">SOAP 추출</span>
@@ -1145,6 +1301,111 @@
           <tr><td><strong>인증 필요</strong> (홈택스 · 정부24)</td><td>~100</td><td>T4</td><td class="center"><span class="badge-no">✗</span> 제외</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <!-- Automation Classification -->
+  <section id="automation">
+    <div class="container">
+      <div class="eyebrow">수집·등록 자동화 매트릭스</div>
+      <h2>공공 API 자동화 가능성 4분류</h2>
+      <p class="lede">
+        부처 60+ 담당자가 직접 등록하는 모델은 비현실적입니다.
+        <strong style="color:var(--ink);">우리(운영자)가 일괄 처리</strong>할 수 있도록 자동화 관점에서 4분류했습니다.
+        약 <strong style="color:var(--ink);">95%</strong> 의 API 는 자동 또는 반자동으로 처리 가능합니다.
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>분류</th>
+            <th>출처 · 대표 부처</th>
+            <th>비중</th>
+            <th class="center">자동화 가능</th>
+            <th>처리 방식</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A. 크롤링 자동 해결</strong></td>
+            <td><strong>data.go.kr 표준 등록</strong> — 기상청·국토부·식약처·복지부·환경부(에어코리아)·관광공사·문화재청·영진위·도서관정보나루·국세청·교통안전공단 등 <strong>60+ 부처</strong></td>
+            <td>~70%</td>
+            <td class="center"><span class="badge-yes">✓</span> 완전 자동</td>
+            <td>data.go.kr List API → 메타·활용가이드·OAS 일괄 추출</td>
+          </tr>
+          <tr>
+            <td><strong>B. 사이트별 파서</strong></td>
+            <td><strong>data.go.kr 외부 포털</strong> — juso.go.kr(행안부 도로명) · KOSIS(통계청) · DART(금감원 공시) · ECOS(한국은행) · apihub.kma(기상청 자체) · data.mfds(식약처 자체) · KOFIC(영진위 자체) · 일부 지자체</td>
+            <td>~15%</td>
+            <td class="center"><span class="badge-partial">△</span> 반자동</td>
+            <td>포털당 1회 파서 작성 → 이후 정기 polling</td>
+          </tr>
+          <tr>
+            <td><strong>C. 인증 추가 필요</strong></td>
+            <td>활용 신청 검토 · 별도 발급 절차 — 홈택스 일부 · 건강보험 일부 · 금융 민감 데이터 · 일부 지자체 API</td>
+            <td>~10%</td>
+            <td class="center"><span class="badge-partial">△</span> 1회 셋업 후 자동</td>
+            <td>운영자 1회 수동 신청 → 게이트웨이 키 풀에 등록</td>
+          </tr>
+          <tr>
+            <td><strong>D. 담당자 등록 / 수동</strong></td>
+            <td>T4 (공인인증서 · CAPTCHA · ActiveX) · HTML-only 명세 · bulk dump only · 비공식 API</td>
+            <td>~5%</td>
+            <td class="center"><span class="badge-no">✗</span> 자동화 불가</td>
+            <td>Phase 1 의도적 제외 · Phase 5 본인 토큰 주입 우회 검토</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="kpi-grid" style="margin-top: 36px;">
+        <div class="kpi-box">
+          <div class="kpi-num">~70%</div>
+          <div class="kpi-label">완전 자동화<br/>(A · 크롤링)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">~25%</div>
+          <div class="kpi-label">반자동화<br/>(B + C · 1회 셋업 후 자동)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">~95%</div>
+          <div class="kpi-label">우리가 일괄 처리 가능<br/>(A + B + C 합산)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">~5%</div>
+          <div class="kpi-label">자동화 불가<br/>(D · 의도적 제외)</div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 20px; font-weight: 700; margin-top: 40px; margin-bottom: 18px;">분류별 처리 절차 상세</h3>
+
+      <div class="problem-grid">
+        <div class="problem-card">
+          <div class="num">A · 크롤링 자동</div>
+          <h3>data.go.kr List API 활용</h3>
+          <p>data.go.kr 자체가 OpenAPI(List API) 제공. 등록된 모든 API 의 메타·기관·카테고리·활용가이드 파일 링크를 일괄 수집. 이후 LLM OAS 추출 + 카나리아 → 자동 게시 (신뢰도 ≥85%) 또는 검수 큐.</p>
+        </div>
+        <div class="problem-card">
+          <div class="num">B · 사이트별 파서</div>
+          <h3>포털당 1회 크롤러</h3>
+          <p>juso.go.kr · KOSIS · DART · ECOS 등 외부 포털은 자체 카탈로그를 가짐. 포털별 파서를 1회 작성하면 이후는 자동. 신규 등록은 정기 polling 으로 감지.</p>
+        </div>
+        <div class="problem-card">
+          <div class="num">C · 인증 필요</div>
+          <h3>운영자 키 풀</h3>
+          <p>활용 신청서 검토가 필요한 API 는 운영자가 1회 수동 신청. 발급된 키를 게이트웨이 Key Pool 에 저장 → 사용자는 통합 키 1개로 모두 호출 가능.</p>
+        </div>
+        <div class="problem-card">
+          <div class="num">D · 수동 · 제외</div>
+          <h3>Phase 1 제외</h3>
+          <p>공인인증서 · CAPTCHA · ActiveX 의존 API 는 자동화 불가. Phase 1 범위에서 의도적 제외. Phase 5 에서 "사용자 본인 토큰 주입" 방식 검토.</p>
+        </div>
+      </div>
+
+      <p class="lede" style="margin-top: 32px; margin-bottom: 0; font-size: 14.5px; padding: 18px 22px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 6px;">
+        <strong style="color: var(--accent);">핵심 인사이트.</strong>
+        부처 60+ 담당자가 각자 등록할 필요 X. <strong style="color: var(--ink);">약 95% 의 API 는 운영자(우리) 한 곳에서 일괄 자동·반자동 처리 가능</strong>합니다.
+        남은 5% 는 의도적 제외 또는 Phase 5 거버넌스 영역.
+      </p>
     </div>
   </section>
 

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protocol K — 화면 기획 (Phase 1 UI Test)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #6b6b6b;
+      --line: #e5e2db;
+      --accent: #2d4a3a;
+      --accent-soft: #e8eee9;
+      --accent-bright: #8fb9a1;
+      --warn: #b85c38;
+      --warn-soft: #fbe9df;
+      --code-bg: #f3f1ec;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg); color: var(--ink);
+      line-height: 1.65; font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, .mono {
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      font-size: 0.88em; background: var(--code-bg);
+      padding: 1px 6px; border-radius: 3px;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(250, 250, 247, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 0;
+    }
+    nav.top .container { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    nav.top .brand { font-weight: 700; font-size: 17px; }
+    nav.top .brand .dot { color: var(--accent); }
+    nav.top ul { list-style: none; display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
+    nav.top a { color: var(--muted); text-decoration: none; font-size: 13px; white-space: nowrap; }
+    nav.top a:hover { color: var(--ink); }
+    nav.top .pill { background: var(--accent); color: white; padding: 4px 10px; border-radius: 3px; font-size: 12px; font-weight: 600; }
+
+    header.hero { padding: 110px 0 80px; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; font-weight: 600; }
+    .hero h1 {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -0.025em; margin-bottom: 24px;
+    }
+    .hero .lede { font-size: 18px; color: var(--muted); max-width: 720px; }
+
+    section { padding: 72px 0; border-bottom: 1px solid var(--line); }
+    section h2 {
+      font-size: clamp(26px, 3.2vw, 34px);
+      font-weight: 700; letter-spacing: -0.015em;
+      margin-bottom: 16px; line-height: 1.2;
+    }
+    section h2 + .lede {
+      font-size: 16.5px; color: var(--muted);
+      max-width: 760px; margin-bottom: 36px;
+    }
+    h3 { font-size: 19px; font-weight: 700; margin-bottom: 14px; margin-top: 28px; letter-spacing: -0.01em; }
+    h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; margin-top: 20px; }
+    p { margin-bottom: 14px; }
+    p.muted { color: var(--muted); }
+
+    .data-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+      margin: 16px 0 24px; font-size: 14px;
+    }
+    .data-table th, .data-table td {
+      padding: 12px 16px; text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .data-table th {
+      background: var(--bg); font-size: 11.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); font-weight: 700;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table td.center { text-align: center; }
+
+    pre.code-block, pre.wire {
+      background: var(--surface); border: 1px solid var(--line);
+      padding: 22px; border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px; line-height: 1.65;
+      overflow-x: auto; color: var(--ink);
+      white-space: pre; margin: 14px 0 24px;
+    }
+    pre.code-block .comment, pre.wire .comment { color: var(--muted); }
+
+    /* Persona */
+    .persona-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+      margin-top: 16px;
+    }
+    .persona-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 24px;
+    }
+    .persona-tag {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.12em;
+      padding: 3px 10px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 12px;
+      background: var(--accent-soft); color: var(--accent);
+    }
+    .persona-card h4 { margin-top: 0; }
+    .persona-card p { font-size: 13.5px; color: var(--muted); margin: 0; }
+
+    /* Page card */
+    .page-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0 28px; }
+    .page-card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 28px;
+      border-left: 4px solid var(--accent);
+    }
+    .page-card.admin { border-left-color: var(--warn); }
+    .page-card .route {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--accent); font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .page-card.admin .route { color: var(--warn); }
+    .page-card h3 { margin-top: 0; }
+    .page-card .scope {
+      font-size: 11.5px; color: var(--muted);
+      letter-spacing: 0.05em; margin-bottom: 12px;
+      text-transform: uppercase; font-weight: 600;
+    }
+    .page-card ul { list-style: none; padding-left: 0; }
+    .page-card li {
+      padding: 6px 0 6px 18px; position: relative;
+      font-size: 13.5px; line-height: 1.55;
+      border-bottom: 1px dashed var(--line);
+    }
+    .page-card li:last-child { border-bottom: none; }
+    .page-card li::before {
+      content: "▸"; position: absolute; left: 0;
+      color: var(--accent); font-weight: 700;
+    }
+    .page-card.admin li::before { color: var(--warn); }
+
+    /* Flow */
+    .flow-block {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 24px;
+      margin: 14px 0 20px;
+    }
+    .flow-block .flow-label {
+      display: inline-block; font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; letter-spacing: 0.15em;
+      padding: 3px 10px; border-radius: 3px;
+      font-weight: 700; margin-bottom: 12px;
+      background: var(--accent); color: white;
+    }
+    .flow-block.admin .flow-label { background: var(--warn); }
+
+    .callout {
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      border-radius: 6px; padding: 18px 22px;
+      margin: 16px 0;
+    }
+    .callout.warn {
+      background: var(--warn-soft);
+      border-color: var(--warn);
+    }
+    .callout strong { color: var(--accent); }
+    .callout.warn strong { color: var(--warn); }
+
+    .scope-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-top: 16px;
+    }
+    .scope-box {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 6px; padding: 24px;
+    }
+    .scope-box.in { border-top: 4px solid var(--accent); }
+    .scope-box.out { border-top: 4px solid var(--muted); }
+    .scope-box h4 { margin-top: 0; }
+    .scope-box ul { list-style: none; padding-left: 0; }
+    .scope-box li { padding: 6px 0 6px 22px; position: relative; font-size: 13.5px; }
+    .scope-box.in li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+    .scope-box.out li::before { content: "✗"; position: absolute; left: 0; color: var(--muted); font-weight: 700; }
+
+    footer { padding: 48px 0; color: var(--muted); font-size: 13px; }
+    footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    @media (max-width: 880px) {
+      .persona-grid, .page-grid, .scope-grid { grid-template-columns: 1fr; }
+      header.hero { padding: 60px 0 50px; }
+      nav.top ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top">
+    <div class="container">
+      <div class="brand">Protocol<span class="dot"> K</span> · 화면 기획</div>
+      <ul>
+        <li><a href="#persona">페르소나</a></li>
+        <li><a href="#ia">페이지 IA</a></li>
+        <li><a href="#pages">페이지 상세</a></li>
+        <li><a href="#flow">사용자 흐름</a></li>
+        <li><a href="#wireframe">와이어프레임</a></li>
+        <li><a href="#stack">스택</a></li>
+        <li><a href="#scope">스코프</a></li>
+        <li><a href="../../index.html" class="pill">기획서</a></li>
+        <li><a href="./architecture.html" class="pill">아키텍처</a></li>
+        <li><a href="./conventions.html" class="pill">컨벤션</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <div class="eyebrow">Screen Plan · Phase 1 UI Test</div>
+      <h1>Protocol K<br/>화면 기획 (최소 기능 테스트)</h1>
+      <p class="lede">
+        Phase 1 의 핵심 흐름(<strong style="color:var(--ink);">사용자 검색·Try-it</strong> +
+        <strong style="color:var(--ink);">운영자 변환·검수</strong>)을 검증하기 위한 최소 화면 4종.
+        <strong style="color:var(--ink);"><code>test/</code> 폴더에 격리</strong>한 React + Vite SPA 로 구축하며,
+        정식 frontend (담당자 조현재) 시작 시 통째 제거합니다.
+      </p>
+    </div>
+  </header>
+
+  <!-- Persona -->
+  <section id="persona">
+    <div class="container">
+      <div class="eyebrow">페르소나</div>
+      <h2>이 화면을 누가 쓰는가</h2>
+      <p class="lede">Phase 1 화면이 커버하는 3가지 역할. P2 (Connect Guide) 는 후속 단계.</p>
+
+      <div class="persona-grid">
+        <div class="persona-card">
+          <div class="persona-tag">P1 · USER</div>
+          <h4>일반 사용자</h4>
+          <p>카탈로그에서 도구를 검색하고, 상세 페이지에서 Try-it 으로 즉석 호출 검증.</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-tag">P2 · DEVELOPER</div>
+          <h4>AI 개발자</h4>
+          <p>endpoint 가져가 Claude Desktop · LangGraph 연결. <em>Connect Guide 페이지는 Phase 2+ 로 미룸</em>.</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-tag">P3 · OPERATOR</div>
+          <h4>운영자</h4>
+          <p>PDF/HWP 명세 업로드 → LLM 추출 결과 검수 → 카나리아 확인 → 게시.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IA -->
+  <section id="ia" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">Page Information Architecture</div>
+      <h2>페이지 4개 · 라우팅</h2>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>Route</th><th>페이지</th><th>페르소나</th><th>데이터</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>/</code> → <code>/catalog</code></td><td>(redirect)</td><td>—</td><td>—</td></tr>
+          <tr><td><code>/catalog</code></td><td>Catalog</td><td>P1</td><td>mock 30개 시드</td></tr>
+          <tr><td><code>/tools/:slug</code></td><td>Tool Detail (Try-it 포함)</td><td>P1 · P2</td><td>메타 = mock · <strong>Try-it = 실제 Gateway</strong></td></tr>
+          <tr><td><code>/admin/upload</code></td><td>Admin Upload</td><td>P3</td><td>mock</td></tr>
+          <tr><td><code>/admin/editor/:slug</code></td><td>Admin Tool Editor</td><td>P3</td><td>mock</td></tr>
+        </tbody>
+      </table>
+
+      <p class="muted">
+        모든 페이지 인증 없음 (Phase 1 데모 환경). Try-it 만 헤더에 API key input + localStorage 보관.
+      </p>
+    </div>
+  </section>
+
+  <!-- Pages -->
+  <section id="pages">
+    <div class="container">
+      <div class="eyebrow">페이지별 컴포넌트</div>
+      <h2>4페이지 상세</h2>
+
+      <div class="page-grid">
+        <div class="page-card">
+          <div class="route">/catalog</div>
+          <h3>Catalog</h3>
+          <div class="scope">검색 · 필터 · 카드 그리드</div>
+          <ul>
+            <li>상단 nav + 검색바 (자연어 + 키워드)</li>
+            <li>좌측 필터: 카테고리 칩 · 기관 · Tier</li>
+            <li>도구 카드 그리드 (이름 · 짧은 설명 · 태그 · 인기도)</li>
+            <li>정렬: 인기 · 최신 · 이름</li>
+            <li>상태: 로딩 스켈레톤 · 빈 결과 · 에러</li>
+            <li>카드 클릭 → <code>/tools/:slug</code></li>
+          </ul>
+        </div>
+
+        <div class="page-card">
+          <div class="route">/tools/:slug</div>
+          <h3>Tool Detail · Try-it</h3>
+          <div class="scope">메타 = mock · Try-it = 실제 호출</div>
+          <ul>
+            <li>헤더: 도구명 · 기관 · Tier 배지 · 태그</li>
+            <li>설명 (한국어 + 영문)</li>
+            <li>입력 / 응답 스키마 시각화</li>
+            <li><strong>Try-it 패널</strong> — 스키마 기반 폼 자동 생성</li>
+            <li>실행 버튼 → <strong>실제 Gateway POST</strong> → JSON viewer</li>
+            <li>MCP config 스니펫 (Claude Desktop · LangGraph 등)</li>
+            <li>함정·주의사항 (격자좌표 · LAWD_CD 등)</li>
+          </ul>
+        </div>
+
+        <div class="page-card admin">
+          <div class="route">/admin/upload</div>
+          <h3>Admin · API Registration</h3>
+          <div class="scope">P3 운영자 · mock</div>
+          <ul>
+            <li>드래그-드롭 파일 업로드 (PDF / HWP / OAS YAML)</li>
+            <li>기본 메타 폼: 기관 · 카테고리 · 태그 · 인증 방식</li>
+            <li>"변환 시작" 버튼 → mock 응답 (slug 부여)</li>
+            <li>완료 시 <code>/admin/editor/:slug</code> 로 이동</li>
+            <li>업로드 이력 (마지막 5건, mock)</li>
+          </ul>
+        </div>
+
+        <div class="page-card admin">
+          <div class="route">/admin/editor/:slug</div>
+          <h3>Admin · Tool Editor</h3>
+          <div class="scope">P3 운영자 · 3-pane · mock</div>
+          <ul>
+            <li><strong>좌</strong>: 원본 명세 (PDF preview placeholder)</li>
+            <li><strong>중</strong>: LLM 생성 OAS YAML 편집기 (diff 보기)</li>
+            <li><strong>우</strong>: 카나리아 호출 결과 + 함정 description 보강 필드</li>
+            <li>액션: 게시 · 재실행(LLM) · 거부</li>
+            <li>상태 배지: Pending → Reviewing → Canary → Published</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Flow -->
+  <section id="flow" style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">사용자 흐름</div>
+      <h2>핵심 시나리오 2가지</h2>
+
+      <div class="flow-block">
+        <span class="flow-label">FLOW A · 일반 사용자</span>
+<pre class="wire">Catalog (검색: "동네 미세먼지")
+   │
+   ▼
+Tool Detail (에어코리아 측정정보)
+   │
+   ├─→ 입력 스키마 · 응답 예시 확인
+   │
+   ▼
+Try-it 패널
+   │
+   ├─→ 지역명 / 측정소 입력
+   │
+   ▼
+실행 (API key 사용)
+   │
+   ▼
+JSON 응답 확인 + 호출 시간 + 응답 검증</pre>
+      </div>
+
+      <div class="flow-block admin">
+        <span class="flow-label">FLOW B · 운영자</span>
+<pre class="wire">Admin Upload
+   │
+   ├─→ PDF/HWP 드래그-드롭 + 메타 입력
+   │
+   ▼
+"변환 시작" (mock) → slug 발급
+   │
+   ▼
+Admin Tool Editor (자동 이동)
+   │
+   ├─→ 좌측: PDF preview
+   ├─→ 중앙: LLM OAS YAML 검수 (mock)
+   ├─→ 우측: 카나리아 결과 확인
+   │
+   ▼
+"게시" → Catalog 즉시 노출 (Phase 1 에선 mock 데이터 추가만)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Wireframe -->
+  <section id="wireframe">
+    <div class="container">
+      <div class="eyebrow">와이어프레임 (ASCII)</div>
+      <h2>레이아웃 스케치</h2>
+      <p class="lede">
+        시각 디자인은 담당자(조현재) 영역. 본 스케치는 정보 배치 기준점.
+        Pretendard 폰트 · deep teal accent · 카드 기반 — <code>index.html</code> 톤 일관.
+      </p>
+
+      <h3>Catalog</h3>
+<pre class="wire">┌─────────────────────────────────────────────────────────────────┐
+│  Protocol K · Catalog                              [ API key ]  │
+├─────────────────────────────────────────────────────────────────┤
+│  🔍 [ 동네 미세먼지를 알려줘                              ] [→] │
+├──────────────┬──────────────────────────────────────────────────┤
+│  CATEGORIES  │  30 tools                          [popular ▾]   │
+│  ☑ 환경기상    │  ┌──────────────┐ ┌──────────────┐ ┌──────────┐ │
+│  ☐ 국토관리    │  │ weather.     │ │ business.    │ │ realty.  │ │
+│  ☐ 보건의료    │  │ short_       │ │ verify_      │ │ apt_     │ │
+│  ☐ 재정금융    │  │ forecast     │ │ status       │ │ trade    │ │
+│  ☐ 문화관광    │  │ 기상청        │ │ 국세청        │ │ 국토부    │ │
+│  ☐ 통계법령    │  │ T2 · weather │ │ T1 · finance │ │ T2 · ... │ │
+│              │  └──────────────┘ └──────────────┘ └──────────┘ │
+│  TIER        │  ┌──────────────┐ ┌──────────────┐ ┌──────────┐ │
+│  ☑ T1        │  │ ...          │ │ ...          │ │ ...      │ │
+│  ☑ T2        │  └──────────────┘ └──────────────┘ └──────────┘ │
+│  ☐ T3        │                                                  │
+└──────────────┴──────────────────────────────────────────────────┘</pre>
+
+      <h3>Tool Detail · Try-it</h3>
+<pre class="wire">┌─────────────────────────────────────────────────────────────────┐
+│  ← Back   weather.short_forecast            🟦 T2 · 기상청       │
+├─────────────────────────────────────────────────────────────────┤
+│  단기 예보 조회 (Short-term forecast)                            │
+│  기상청 격자좌표(nx, ny) 기반 1~3시간 단위 예보를 반환합니다.       │
+├─────────────────────────────────────────────────────────────────┤
+│  INPUT SCHEMA          │  TRY IT                                 │
+│  ┌──────────────────┐  │  ┌─────────────────────────────────┐    │
+│  │ base_date string │  │  │ base_date  [ 20260519        ]  │   │
+│  │ base_time string │  │  │ base_time  [ 0500            ]  │   │
+│  │ nx       int     │  │  │ nx         [ 60              ]  │   │
+│  │ ny       int     │  │  │ ny         [ 127             ]  │   │
+│  └──────────────────┘  │  └─────────────────────────────────┘    │
+│                        │  [ ▶ 실행 ]   (응답 시간: 412ms)        │
+│  ⚠ nx/ny = 격자좌표    │                                          │
+│    (위경도 아님)        │  RESPONSE                               │
+│                        │  ┌─────────────────────────────────┐    │
+│  RESPONSE SCHEMA       │  │ { "items": [                    │    │
+│  ┌──────────────────┐  │  │   { "category": "TMP",          │    │
+│  │ items[]          │  │  │     "value": 22 }, ... ] }      │    │
+│  │   category str   │  │  └─────────────────────────────────┘    │
+│  │   value   num    │  │                                          │
+│  └──────────────────┘  │  [ MCP config 복사 ]                    │
+└─────────────────────────────────────────────────────────────────┘</pre>
+
+      <h3>Admin · Upload</h3>
+<pre class="wire">┌─────────────────────────────────────────────────────────────────┐
+│  Admin · API Registration                                       │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                                                         │    │
+│  │     📄  Drop PDF / HWP / OAS YAML here                  │    │
+│  │           or click to browse                            │    │
+│  │                                                         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  기관      [ 기상청                                  ]          │
+│  카테고리  [ 환경기상 ▾ ]                                       │
+│  태그      [ weather, forecast, real-time              ]        │
+│  인증방식  [ serviceKey query ▾ ]                               │
+│                                                                 │
+│                                          [ Cancel ] [ ▶ 변환 ]  │
+│                                                                 │
+│  Recent uploads                                                 │
+│  ─ weather.short_forecast    Reviewing  · 3 min ago             │
+│  ─ business.verify_status    Published  · 1 hour ago            │
+└─────────────────────────────────────────────────────────────────┘</pre>
+
+      <h3>Admin · Tool Editor (3-pane)</h3>
+<pre class="wire">┌──────────────────────────────────────────────────────────────────┐
+│ Editor · weather.short_forecast      Status: Reviewing           │
+├──────────────────┬────────────────────────┬──────────────────────┤
+│ ORIGINAL SPEC    │ OAS YAML (LLM draft)   │ CANARY · NOTES       │
+│ ┌──────────────┐ │ openapi: 3.1.0         │ ✓ HTTP 200           │
+│ │              │ │ info:                  │ ✓ schema match       │
+│ │  PDF preview │ │   title: ...           │ ✗ nx/ny description  │
+│ │              │ │ paths:                 │   needs grid coord   │
+│ │  page 1/12   │ │   /vilageFcst:         │   note               │
+│ │              │ │     get:               │                      │
+│ │  [<] [>]     │ │       parameters: ...  │ Add note:            │
+│ │              │ │                        │ [ nx/ny = 격자좌표 ] │
+│ └──────────────┘ │ [edit · diff · revert] │                      │
+│                  │                        │ [ Re-run LLM ]       │
+├──────────────────┴────────────────────────┴──────────────────────┤
+│                            [ Reject ]  [ Re-run ]  [ ▶ Publish ] │
+└──────────────────────────────────────────────────────────────────┘</pre>
+    </div>
+  </section>
+
+  <!-- Stack -->
+  <section id="stack" style="background: var(--surface);">
+    <div class="container">
+      <div class="eyebrow">기술 스택</div>
+      <h2>React + Vite + TypeScript</h2>
+
+      <table class="data-table">
+        <thead>
+          <tr><th>항목</th><th>선택</th><th>이유</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Framework</td><td><strong>React 19</strong></td><td>조현재 인계 친화. 모던 표준.</td></tr>
+          <tr><td>Build</td><td><strong>Vite 7</strong></td><td>dev 서버 빠름, HMR, 셋업 5분.</td></tr>
+          <tr><td>Lang</td><td><strong>TypeScript</strong></td><td>backend OpenAPI 자동 생성 친화.</td></tr>
+          <tr><td>Router</td><td>React Router v7</td><td>표준.</td></tr>
+          <tr><td>스타일</td><td>Vanilla CSS + 변수</td><td><code>index.html</code> 톤 일관. Tailwind 등 의존성 추가 X.</td></tr>
+          <tr><td>상태</td><td>useState</td><td>글로벌 store 불필요 (Phase 1 규모).</td></tr>
+          <tr><td>패키지</td><td>pnpm</td><td>빠름·디스크 효율.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>의존성 (최소)</h3>
+      <pre class="code-block">{
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router-dom": "^7"
+  },
+  "devDependencies": {
+    "vite": "^7",
+    "@vitejs/plugin-react": "^5",
+    "typescript": "^5.6"
+  }
+}</pre>
+
+      <h3>폴더 구조</h3>
+      <pre class="code-block">test/                              <span class="comment"># 격리 — 정식 frontend 시작 시 통째 rm -rf</span>
+├── README.md                      <span class="comment"># "임시 dev UI" 명시</span>
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+├── index.html                     <span class="comment"># Vite entry (기획서 index.html 아님)</span>
+└── src/
+    ├── main.tsx
+    ├── App.tsx                    <span class="comment"># React Router</span>
+    ├── pages/
+    │   ├── Catalog.tsx
+    │   ├── ToolDetail.tsx
+    │   ├── AdminUpload.tsx
+    │   └── AdminEditor.tsx
+    ├── components/
+    │   ├── Nav.tsx
+    │   ├── ToolCard.tsx
+    │   ├── FilterSidebar.tsx
+    │   ├── TryItPanel.tsx
+    │   ├── SchemaViewer.tsx
+    │   └── YamlEditor.tsx
+    ├── lib/
+    │   ├── api.ts                 <span class="comment"># Try-it 실제 Gateway 호출</span>
+    │   └── mock-data.ts           <span class="comment"># 도구 메타 30개 시드</span>
+    └── styles/
+        ├── tokens.css             <span class="comment"># 디자인 토큰 (index.html 일관)</span>
+        └── global.css</pre>
+
+      <h3>디자인 토큰 (index.html 그대로)</h3>
+      <pre class="code-block">:root {
+  --bg: #fafaf7;
+  --ink: #1a1a1a;
+  --muted: #6b6b6b;
+  --line: #e5e2db;
+  --accent: #2d4a3a;
+  --accent-soft: #e8eee9;
+  --accent-bright: #8fb9a1;
+  --warn: #b85c38;
+}
+<span class="comment">/* Pretendard · JetBrains Mono CDN */</span></pre>
+    </div>
+  </section>
+
+  <!-- Scope -->
+  <section id="scope">
+    <div class="container">
+      <div class="eyebrow">스코프</div>
+      <h2>포함 / 제외</h2>
+
+      <div class="scope-grid">
+        <div class="scope-box in">
+          <h4>✓ 포함 (Phase 1)</h4>
+          <ul>
+            <li>4 페이지 (Catalog · Tool Detail · Admin Upload · Admin Editor)</li>
+            <li>Try-it 실제 Gateway 호출</li>
+            <li>mock 30개 도구 시드 데이터</li>
+            <li>디자인 토큰 통일 (index.html 일관)</li>
+            <li>API key localStorage 보관</li>
+            <li>README (실행법 · 인계 안내)</li>
+          </ul>
+        </div>
+        <div class="scope-box out">
+          <h4>✗ 제외 (의도적)</h4>
+          <ul>
+            <li>Connect Guide / My Account / 로그인</li>
+            <li>Drift Dashboard · 카나리아 차트</li>
+            <li>다국어 · 다크모드 · 모바일 최적화</li>
+            <li>테스트 코드 · CI · 번들 최적화</li>
+            <li>접근성 (WCAG) — 정식 frontend 영역</li>
+            <li>Storybook · 디자인 시스템 패키지화</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout warn" style="margin-top: 28px;">
+        <strong>격리 원칙</strong>
+        <p style="margin: 8px 0 0; font-size: 14px;">
+          <code>test/</code> 폴더 안에서만 작업합니다. 메인 레포 다른 부분(backend · pipeline · docs)과 import 금지.
+          정식 frontend(담당자 조현재) 시작 시 <code>rm -rf test/</code> 로 통째 제거합니다.
+          README 에 이 의도를 명시하여 PR 머지 시 혼동 방지.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Next steps -->
+  <section style="background: var(--accent-soft);">
+    <div class="container">
+      <div class="eyebrow">다음 단계</div>
+      <h2>구현 순서</h2>
+      <ol style="padding-left: 28px; font-size: 15px; line-height: 1.85;">
+        <li><strong>Vite scaffold</strong> — <code>pnpm create vite test --template react-ts</code></li>
+        <li><strong>디자인 토큰 import</strong> — <code>tokens.css</code> 작성</li>
+        <li><strong>mock 데이터 시드</strong> — 30개 도구 메타 (실제 코어 30개 리스트 활용)</li>
+        <li><strong>Catalog 페이지</strong> — 카드 그리드 + 필터 + 검색</li>
+        <li><strong>Tool Detail 페이지</strong> — 메타 표시 + Try-it 패널 (fetch 호출)</li>
+        <li><strong>Admin Upload 페이지</strong> — 드래그-드롭 + mock 응답</li>
+        <li><strong>Admin Editor 페이지</strong> — 3-pane + mock YAML 편집기</li>
+        <li><strong>README</strong> — 실행법 · 인계 안내</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div>Protocol K · Screen Plan v0.1 · 2026-05-19</div>
+      <div>
+        <a href="../../index.html">기획 페이지</a> ·
+        <a href="./architecture.html">아키텍처</a> ·
+        <a href="./conventions.html">컨벤션</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
